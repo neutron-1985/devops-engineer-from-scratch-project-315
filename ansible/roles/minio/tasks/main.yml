@@ -1,0 +1,66 @@
+---
+- name: Validate MinIO configuration
+  ansible.builtin.assert:
+    that:
+      - minio_root_user | length >= 3
+      - minio_root_password | length >= 16
+      - minio_allowed_cidrs | length > 0
+    fail_msg: "MinIO requires credentials and at least one allowed client CIDR."
+  no_log: true
+
+- name: Configure MinIO firewall
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Create MinIO data volume
+  community.docker.docker_volume:
+    name: "{{ minio_volume_name }}"
+    state: present
+
+- name: Run MinIO container
+  community.docker.docker_container:
+    name: "{{ minio_container_name }}"
+    image: "{{ minio_image }}"
+    state: started
+    detach: true
+    restart_policy: always
+    pull: missing
+    network_mode: host
+    command: server /data
+    volumes:
+      - "{{ minio_volume_name }}:/data"
+    env:
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_ADDRESS: ":{{ minio_api_port }}"
+      MINIO_BROWSER: "off"
+  no_log: true
+
+- name: Wait until MinIO is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ minio_api_port }}/minio/health/ready"
+    status_code: 200
+  register: minio_healthcheck
+  retries: 30
+  delay: 2
+  until: minio_healthcheck.status == 200
+  when: not ansible_check_mode
+
+- name: Create MinIO bucket
+  community.docker.docker_container:
+    name: project-devops-minio-create-bucket
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - mb
+      - --ignore-existing
+      - --region
+      - "{{ minio_region }}"
+      - "local/{{ minio_bucket }}"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode

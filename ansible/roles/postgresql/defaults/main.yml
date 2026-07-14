@@ -1,0 +1,18 @@
+---
+postgresql_image: postgres:17-alpine
+postgresql_container_name: project-devops-postgresql
+postgresql_database: bulletins
+postgresql_user: bulletins_app
+postgresql_password: ""
+postgresql_port: "5432"
+postgresql_volume_name: project-devops-postgresql-data
+
+# Persist the last firewall allowlist as an Ansible local fact.
+postgresql_fact_dir: /etc/ansible/facts.d
+postgresql_fact_file: "{{ postgresql_fact_dir }}/postgresql_firewall.fact"
+postgresql_firewall_comment: project-devops-postgresql
+postgresql_allowed_cidrs: []
+postgresql_previous_allowed_cidrs: "{{ ansible_local.postgresql_firewall | default([]) }}"
+
+postgresql_manage_ufw: true
+postgresql_ssh_port: "22"

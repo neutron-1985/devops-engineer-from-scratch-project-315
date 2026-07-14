@@ -1,0 +1,16 @@
+ansible/roles/*
+!ansible/roles/app_deploy
+!ansible/roles/app_deploy/**
+!ansible/roles/postgresql
+!ansible/roles/postgresql/**
+!ansible/roles/server_provision
+!ansible/roles/server_provision/**
+!ansible/roles/minio
+!ansible/roles/minio/**
+!ansible/roles/database_migrations
+!ansible/roles/database_migrations/**
+ansible/collections/
+ansible/inventory.ini
+ansible/inventory.generated.ini
+ansible/.vault-password
+ansible/.generated/

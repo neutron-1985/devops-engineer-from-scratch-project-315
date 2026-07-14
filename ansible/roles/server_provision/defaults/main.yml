@@ -1,0 +1,13 @@
+---
+server_provision_users:
+  - name: "{{ deploy_user }}"
+    groups: docker
+
+server_provision_allowed_tcp_ports:
+  - "22"
+  - "8080"
+  - "9090"
+
+server_provision_app_data_dir: /var/lib/project-devops-deploy
+server_provision_app_uploads_dir: "{{ server_provision_app_data_dir }}/bulletin-images"
+server_provision_app_log_dir: /var/log/project-devops-deploy

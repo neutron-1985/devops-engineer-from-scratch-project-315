@@ -1,0 +1,26 @@
+---
+- name: Render deployment configuration
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../vault/production.yml
+
+  tasks:
+    - name: Create generated configuration directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../.generated"
+        state: directory
+        mode: "0700"
+
+    - name: Render production inventory
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/inventory.ini.j2"
+        dest: "{{ playbook_dir }}/../inventory.generated.ini"
+        mode: "0600"
+
+    - name: Render SSH known hosts
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../templates/known_hosts.j2"
+        dest: "{{ playbook_dir }}/../.generated/known_hosts"
+        mode: "0600"

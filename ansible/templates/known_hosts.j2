@@ -1,0 +1,4 @@
+{% for target in vault_deploy_targets %}
+{{ target.address }} {{ target.ssh_host_key }}
+{% endfor %}
+{{ vault_database_target.address }} {{ vault_database_target.ssh_host_key }}

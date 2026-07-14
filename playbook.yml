@@ -1,0 +1,52 @@
+- name: Provision managed servers
+  hosts: managed
+  remote_user: "{{ provision_user }}"
+  become: true
+  tags:
+    - provision
+
+  roles:
+    - role: server_provision
+
+- name: Migrate production database
+  hosts: production
+  remote_user: "{{ deploy_user }}"
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - deploy
+
+  roles:
+    - role: database_migrations
+
+- name: Deploy application
+  hosts: managed
+  remote_user: "{{ deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - deploy
+
+  roles:
+    - role: app_deploy
+
+- name: Provision PostgreSQL database
+  hosts: database
+  become: true
+  tags:
+    - database
+
+  roles:
+    - role: geerlingguy.docker
+    - role: postgresql
+
+- name: Provision object storage
+  hosts: object_storage
+  become: true
+  tags:
+    - storage
+
+  roles:
+    - role: geerlingguy.docker
+    - role: minio

@@ -1,0 +1,15 @@
+---
+- name: Create application persistent directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: docker
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ server_provision_app_data_dir }}"
+      mode: "0755"
+    - path: "{{ server_provision_app_uploads_dir }}"
+      mode: "0777"
+    - path: "{{ server_provision_app_log_dir }}"
+      mode: "0755"

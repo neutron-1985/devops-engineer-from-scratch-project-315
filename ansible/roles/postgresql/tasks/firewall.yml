@@ -1,0 +1,65 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Keep SSH reachable before enabling UFW
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ postgresql_ssh_port }}"
+    comment: "{{ postgresql_firewall_comment }}-ssh"
+
+- name: Revoke PostgreSQL access from removed allowlist entries
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ postgresql_port }}"
+    src: "{{ item }}"
+    comment: "{{ postgresql_firewall_comment }}"
+    delete: true
+  loop: "{{ postgresql_previous_allowed_cidrs | difference(postgresql_allowed_cidrs) }}"
+
+- name: Allow PostgreSQL access from configured clients
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ postgresql_port }}"
+    src: "{{ item }}"
+    comment: "{{ postgresql_firewall_comment }}"
+  loop: "{{ postgresql_allowed_cidrs }}"
+
+- name: Set default incoming policy to deny
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set default outgoing policy to allow
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+
+- name: Create Ansible local facts directory
+  ansible.builtin.file:
+    path: "{{ postgresql_fact_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Save current PostgreSQL firewall state as a local fact
+  ansible.builtin.copy:
+    content: "{{ postgresql_allowed_cidrs | unique | sort | to_nice_json }}"
+    dest: "{{ postgresql_fact_file }}"
+    owner: root
+    group: root
+    mode: "0600"
