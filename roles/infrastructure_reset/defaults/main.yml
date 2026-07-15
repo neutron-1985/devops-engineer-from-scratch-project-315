@@ -1,0 +1,36 @@
+---
+infrastructure_reset_confirm: false
+
+infrastructure_reset_app_container_name: project-devops-deploy
+infrastructure_reset_app_data_dir: /var/lib/project-devops-deploy
+infrastructure_reset_app_log_dir: /var/log/project-devops-deploy
+infrastructure_reset_postgresql_container_name: project-devops-postgresql
+infrastructure_reset_postgresql_volume_name: project-devops-postgresql-data
+infrastructure_reset_postgresql_fact_file: /etc/ansible/facts.d/postgresql_firewall.fact
+
+infrastructure_reset_minio_container_names:
+  - project-devops-minio
+  - project-devops-minio-create-bucket
+  - project-devops-minio-configure-user
+  - project-devops-minio-configure-policy
+  - project-devops-minio-attach-policy
+infrastructure_reset_minio_volume_name: project-devops-minio-data
+infrastructure_reset_minio_data_dir: /var/lib/project-devops-minio
+infrastructure_reset_minio_fact_file: /etc/ansible/facts.d/minio_firewall.fact
+
+infrastructure_reset_docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - docker-ce-rootless-extras
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+infrastructure_reset_docker_paths:
+  - /etc/docker
+  - /var/lib/docker
+  - /var/lib/containerd
+  - /etc/apt/sources.list.d/docker.sources
+  - /etc/apt/sources.list.d/docker.list
+  - /etc/apt/keyrings/docker.asc
+  - /etc/apt/trusted.gpg.d/docker.asc

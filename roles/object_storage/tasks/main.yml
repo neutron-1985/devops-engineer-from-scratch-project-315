@@ -1,0 +1,154 @@
+---
+- name: Validate MinIO configuration
+  ansible.builtin.assert:
+    that:
+      - minio_root_user | length >= 3
+      - minio_root_password | length >= 16
+      - minio_app_access_key | length >= 3
+      - minio_app_secret_key | length >= 16
+      - minio_app_access_key != minio_root_user
+      - minio_app_secret_key != minio_root_password
+      - minio_app_object_prefix | length > 0
+      - minio_app_policy_name | length > 0
+      - minio_allowed_cidrs | length > 0
+    fail_msg: "MinIO requires distinct root/application credentials, an application policy, and at least one allowed client CIDR."
+  no_log: true
+
+- name: Configure MinIO firewall
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Create MinIO data volume
+  community.docker.docker_volume:
+    name: "{{ minio_volume_name }}"
+    state: present
+
+- name: Create MinIO configuration directory
+  ansible.builtin.file:
+    path: "{{ minio_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Render least-privilege application policy
+  ansible.builtin.template:
+    src: application-policy.json.j2
+    dest: "{{ minio_app_policy_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Run MinIO container
+  community.docker.docker_container:
+    name: "{{ minio_container_name }}"
+    image: "{{ minio_image }}"
+    state: started
+    detach: true
+    restart_policy: always
+    pull: missing
+    network_mode: host
+    command: server /data
+    volumes:
+      - "{{ minio_volume_name }}:/data"
+    env:
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_ADDRESS: ":{{ minio_api_port }}"
+      MINIO_BROWSER: "off"
+  no_log: true
+
+- name: Wait until MinIO is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ minio_api_port }}/minio/health/ready"
+    status_code: 200
+  register: minio_healthcheck
+  retries: 30
+  delay: 2
+  until: minio_healthcheck.status == 200
+  when: not ansible_check_mode
+
+- name: Create MinIO bucket
+  community.docker.docker_container:
+    name: project-devops-minio-create-bucket
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - mb
+      - --ignore-existing
+      - --region
+      - "{{ minio_region }}"
+      - "local/{{ minio_bucket }}"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Create or update MinIO application user
+  community.docker.docker_container:
+    name: project-devops-minio-configure-user
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - admin
+      - user
+      - add
+      - local
+      - "{{ minio_app_access_key }}"
+      - "{{ minio_app_secret_key }}"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Create or update MinIO application policy
+  community.docker.docker_container:
+    name: project-devops-minio-configure-policy
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - admin
+      - policy
+      - create
+      - local
+      - "{{ minio_app_policy_name }}"
+      - /config/application-policy.json
+    volumes:
+      - "{{ minio_app_policy_file }}:/config/application-policy.json:ro"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Attach application policy to MinIO application user
+  community.docker.docker_container:
+    name: project-devops-minio-attach-policy
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - admin
+      - policy
+      - attach
+      - local
+      - "{{ minio_app_policy_name }}"
+      - --user
+      - "{{ minio_app_access_key }}"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode

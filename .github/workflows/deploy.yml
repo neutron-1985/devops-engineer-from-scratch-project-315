@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: Immutable Docker image tag, for example sha-0123456789abcdef
+        description: Docker image tag, for example sha-425dd32
         required: true
         type: string
 
@@ -44,8 +44,8 @@ jobs:
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
           test -n "$ANSIBLE_VAULT_PASSWORD"
-          install -m 600 /dev/null ansible/.vault-password
-          printf '%s\n' "$ANSIBLE_VAULT_PASSWORD" > ansible/.vault-password
+          install -m 600 /dev/null .vault-password
+          printf '%s\n' "$ANSIBLE_VAULT_PASSWORD" > .vault-password
 
       - name: Load SSH key
         uses: webfactory/ssh-agent@v0.10.0

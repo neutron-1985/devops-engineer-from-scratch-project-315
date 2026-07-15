@@ -1,0 +1,28 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Keep SSH reachable
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ server_provision_ssh_port }}"
+    comment: "{{ server_provision_base_firewall_comment }}-ssh"
+
+- name: Set default incoming policy to deny
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set default outgoing policy to allow
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

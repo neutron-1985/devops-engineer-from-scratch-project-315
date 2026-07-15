@@ -1,0 +1,9 @@
+---
+minio_bucket: "{{ object_storage_bucket }}"
+minio_region: "{{ object_storage_region }}"
+minio_app_object_prefix: "{{ object_storage_object_prefix }}"
+minio_app_policy_name: "{{ object_storage_policy_name }}"
+minio_app_access_key: "{{ object_storage_access_key }}"
+minio_app_secret_key: "{{ object_storage_secret_key }}"
+minio_allowed_cidrs:
+  - 0.0.0.0/0

@@ -1,0 +1,35 @@
+{% set target_groups = vault_deploy_targets | map(attribute='group') | unique | list %}
+{% for target_group in target_groups %}
+[{{ target_group }}]
+{% for target in vault_deploy_targets | selectattr('group', 'equalto', target_group) %}
+{{ target.name }} ansible_host={{ target.address }}
+{% endfor %}
+{% endfor %}
+
+[infrastructure:children]
+application
+database
+object_storage
+
+[infrastructure:vars]
+provision_user={{ vault_provision_user }}
+ansible_python_interpreter=/usr/bin/python3
+
+[database]
+{{ vault_database_target.name }} ansible_host={{ vault_database_target.address }}
+
+[object_storage]
+{{ vault_database_target.name }} ansible_host={{ vault_database_target.address }}
+
+[application:children]
+{% for target_group in target_groups %}
+{{ target_group }}
+{% endfor %}
+
+[application:vars]
+deploy_user={{ vault_deploy_user }}
+deploy_authorized_key={{ vault_deploy_authorized_key | to_json }}
+
+[production:vars]
+app_database_host={{ vault_database_target.address }}
+app_s3_endpoint=http://{{ vault_database_target.address }}:9000

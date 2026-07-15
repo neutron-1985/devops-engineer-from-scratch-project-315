@@ -1,9 +1,0 @@
----
-- name: Configure deployment users
-  ansible.builtin.import_tasks: users.yml
-
-- name: Configure server firewall
-  ansible.builtin.import_tasks: firewall.yml
-
-- name: Prepare application directories
-  ansible.builtin.import_tasks: directories.yml

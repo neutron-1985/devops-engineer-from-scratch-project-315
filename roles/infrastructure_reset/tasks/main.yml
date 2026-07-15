@@ -1,0 +1,45 @@
+---
+- name: Require explicit infrastructure reset confirmation
+  ansible.builtin.assert:
+    that:
+      - infrastructure_reset_confirm | bool
+    fail_msg: >-
+      Infrastructure reset destroys project containers, persistent data,
+      deployment users, firewall rules, Docker, and UFW. Set
+      infrastructure_reset_confirm=true to continue.
+
+- name: Check whether Docker daemon is available
+  ansible.builtin.command:
+    argv:
+      - docker
+      - info
+      - --format
+      - "{{ '{{' }}.ServerVersion{{ '}}' }}"
+  register: infrastructure_reset_docker_info
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: Collect installed package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Disable UFW before destructive cleanup
+  community.general.ufw:
+    state: disabled
+  when: "'ufw' in ansible_facts.packages"
+
+- name: Reset application resources
+  ansible.builtin.include_tasks: application.yml
+  when: "'application' in group_names"
+
+- name: Reset PostgreSQL resources
+  ansible.builtin.include_tasks: database.yml
+  when: "'database' in group_names"
+
+- name: Reset object-storage resources
+  ansible.builtin.include_tasks: object_storage.yml
+  when: "'object_storage' in group_names"
+
+- name: Reset common host resources
+  ansible.builtin.import_tasks: common.yml

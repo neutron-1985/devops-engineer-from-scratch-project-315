@@ -1,0 +1,24 @@
+---
+- name: Remove MinIO containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+    force_kill: true
+  loop: "{{ infrastructure_reset_minio_container_names }}"
+  when: infrastructure_reset_docker_info.rc == 0
+
+- name: Remove MinIO data volume
+  community.docker.docker_volume:
+    name: "{{ infrastructure_reset_minio_volume_name }}"
+    state: absent
+  when: infrastructure_reset_docker_info.rc == 0
+
+- name: Remove MinIO configuration
+  ansible.builtin.file:
+    path: "{{ infrastructure_reset_minio_data_dir }}"
+    state: absent
+
+- name: Remove MinIO firewall local fact
+  ansible.builtin.file:
+    path: "{{ infrastructure_reset_minio_fact_file }}"
+    state: absent

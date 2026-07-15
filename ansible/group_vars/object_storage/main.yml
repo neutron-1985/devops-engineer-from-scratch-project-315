@@ -1,7 +1,0 @@
----
-minio_root_user: "{{ object_storage_access_key }}"
-minio_root_password: "{{ object_storage_secret_key }}"
-minio_bucket: "{{ object_storage_bucket }}"
-minio_region: "{{ object_storage_region }}"
-minio_allowed_cidrs:
-  - 0.0.0.0/0

@@ -1,5 +1,5 @@
-- name: Provision managed servers
-  hosts: managed
+- name: Provision infrastructure hosts
+  hosts: infrastructure
   remote_user: "{{ provision_user }}"
   become: true
   tags:
@@ -21,7 +21,7 @@
     - role: database_migrations
 
 - name: Deploy application
-  hosts: managed
+  hosts: application
   remote_user: "{{ deploy_user }}"
   become: false
   gather_facts: false
@@ -31,22 +31,44 @@
   roles:
     - role: app_deploy
 
+- name: Verify production object storage through the application
+  hosts: production
+  remote_user: "{{ deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - deploy
+    - smoke
+
+  roles:
+    - role: storage_smoke_test
+
 - name: Provision PostgreSQL database
   hosts: database
+  remote_user: "{{ provision_user }}"
   become: true
   tags:
     - database
 
   roles:
-    - role: geerlingguy.docker
-    - role: postgresql
+    - role: database
 
 - name: Provision object storage
   hosts: object_storage
+  remote_user: "{{ provision_user }}"
   become: true
   tags:
     - storage
 
   roles:
-    - role: geerlingguy.docker
-    - role: minio
+    - role: object_storage
+
+- name: Reset infrastructure hosts
+  hosts: infrastructure
+  remote_user: "{{ provision_user }}"
+  become: true
+  tags:
+    - reset
+
+  roles:
+    - role: infrastructure_reset

@@ -1,0 +1,15 @@
+---
+- name: Configure base host firewall
+  ansible.builtin.import_tasks: firewall.yml
+
+- name: Configure application deployment users
+  ansible.builtin.import_tasks: users.yml
+  when: "'application' in group_names"
+
+- name: Configure application firewall
+  ansible.builtin.import_tasks: application_firewall.yml
+  when: "'application' in group_names"
+
+- name: Prepare application directories
+  ansible.builtin.import_tasks: directories.yml
+  when: "'application' in group_names"
