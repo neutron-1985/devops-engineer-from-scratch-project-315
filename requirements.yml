@@ -2,6 +2,8 @@
 roles:
   - name: geerlingguy.docker
     version: 8.0.0
+  - name: geerlingguy.certbot
+    version: 5.4.1
 
 collections:
   - name: ansible.posix
@@ -10,4 +12,3 @@ collections:
     version: 13.1.0
   - name: community.docker
     version: 5.2.0
-

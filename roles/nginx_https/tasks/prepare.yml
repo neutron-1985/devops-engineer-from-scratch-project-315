@@ -1,0 +1,25 @@
+---
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Allow public HTTPS traffic
+  community.general.ufw:
+    rule: allow
+    direction: in
+    port: "{{ nginx_https_listen_port }}"
+    proto: tcp
+    comment: "{{ server_provision_application_firewall_comment }}"
+
+- name: Create Nginx cache directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0750"
+  loop:
+    - "{{ nginx_static_cache_path }}"
+    - "{{ nginx_uploads_cache_path }}"

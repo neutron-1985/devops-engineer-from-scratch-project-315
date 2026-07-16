@@ -17,6 +17,11 @@
     path: "{{ infrastructure_reset_nginx_cache_dir }}"
     state: absent
 
+- name: Remove Let's Encrypt certificates and renewal configuration
+  ansible.builtin.file:
+    path: /etc/letsencrypt
+    state: absent
+
 - name: Remove UFW configuration
   ansible.builtin.file:
     path: /etc/ufw

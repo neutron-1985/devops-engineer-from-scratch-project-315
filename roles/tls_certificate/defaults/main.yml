@@ -1,0 +1,4 @@
+---
+tls_certificate_deploy_hook: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+tls_certificate_timer_unit: certbot.timer
+tls_certificate_timer_unit_path: /lib/systemd/system/certbot.timer

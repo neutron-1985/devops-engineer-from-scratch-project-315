@@ -1,0 +1,5 @@
+---
+nginx_https_enabled: false
+nginx_https_listen_port: "443"
+nginx_https_certificate_name: "{{ nginx_server_name }}"
+nginx_https_site_path: /etc/nginx/sites-available/project-devops-deploy.conf
