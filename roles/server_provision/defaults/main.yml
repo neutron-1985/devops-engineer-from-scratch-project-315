@@ -7,6 +7,8 @@ server_provision_users:
     groups: docker
 
 server_provision_application_ports:
+  - "80"
+server_provision_revoked_application_ports:
   - "8080"
   - "9090"
 server_provision_application_firewall_comment: project-devops-application

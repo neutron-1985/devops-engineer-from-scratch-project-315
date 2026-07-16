@@ -87,6 +87,25 @@
   no_log: true
   when: not ansible_check_mode
 
+- name: Configure public read access for uploaded bulletin images
+  community.docker.docker_container:
+    name: project-devops-minio-configure-public-downloads
+    image: "{{ minio_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - anonymous
+      - set
+      - "{{ 'download' if minio_public_downloads | bool else 'none' }}"
+      - "local/{{ minio_bucket }}/{{ minio_app_object_prefix }}"
+    env:
+      MC_HOST_local: "http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ minio_api_port }}"
+  no_log: true
+  when: not ansible_check_mode
+
 - name: Create or update MinIO application user
   community.docker.docker_container:
     name: project-devops-minio-configure-user

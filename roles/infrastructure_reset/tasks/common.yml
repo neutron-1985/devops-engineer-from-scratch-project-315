@@ -1,7 +1,7 @@
 ---
-- name: Remove Docker and UFW packages
+- name: Remove Docker, Nginx, and UFW packages
   ansible.builtin.apt:
-    name: "{{ infrastructure_reset_docker_packages + ['ufw'] }}"
+    name: "{{ infrastructure_reset_docker_packages + infrastructure_reset_nginx_packages + ['ufw'] }}"
     state: absent
     purge: true
     autoremove: true
@@ -11,6 +11,11 @@
     path: "{{ item }}"
     state: absent
   loop: "{{ infrastructure_reset_docker_paths }}"
+
+- name: Remove Nginx cache
+  ansible.builtin.file:
+    path: "{{ infrastructure_reset_nginx_cache_dir }}"
+    state: absent
 
 - name: Remove UFW configuration
   ansible.builtin.file:

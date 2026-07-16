@@ -5,6 +5,16 @@
 
 Ansible configuration for provisioning and deploying the `project-devops-deploy` application. The application image is built and published by the separate application repository; this repository deploys a selected image tag.
 
+## Deployed service
+
+The production service is available at the following addresses:
+
+- Application: `http://n-devops.jumpingcrab.com:80/`
+- Swagger UI: `http://n-devops.jumpingcrab.com:80/swagger-ui/index.html`
+
+Nginx accepts public HTTP traffic on port `80`. Application port `8080` and
+Actuator port `9090` are bound to `127.0.0.1` and are not exposed publicly.
+
 ## Requirements
 
 - Ansible
@@ -57,7 +67,7 @@ The workflow validates the tag, runs Ansible in check mode, and then performs th
 | Command | Purpose |
 |---|---|
 | `make all` | Install Ansible dependencies, render configuration, provision services, deploy the application, and run the smoke test |
-| `make provision` | Install Docker and base UFW/SSH configuration on all infrastructure hosts; configure application hosts |
+| `make provision` | Install Docker, configure UFW, and install Nginx on application hosts |
 | `make database` | Provision PostgreSQL |
 | `make storage` | Provision MinIO object storage |
 | `make smoke` | Upload and download a test object through the deployed application |
@@ -74,14 +84,31 @@ Run `make provision` before `make database` or `make storage`. The service roles
 
 `make reset` is destructive. It removes the application, PostgreSQL and MinIO
 containers and persistent data, project firewall rules and facts, deployment
-users, Docker, and UFW. It deliberately preserves the provisioning user so the
+users, Docker, Nginx, and UFW. It deliberately preserves the provisioning user so the
 hosts remain reachable. Limit cleanup to selected hosts with `RESET_LIMIT`, for
 example `make reset RESET_LIMIT=production`. The role requires the explicit
 `infrastructure_reset_confirm=true` confirmation supplied by the Make target.
 
+## Nginx reverse proxy and caching
+
+The `nginx_reverse_proxy` role configures `n-devops.jumpingcrab.com` as the
+virtual host and proxies dynamic requests to the application on
+`127.0.0.1:8080`. The application and Actuator ports remain available only on
+the server loopback interface.
+
+Frontend files under `/assets/` are cached by Nginx and clients for one year;
+Vite includes a content hash in their names. Uploaded bulletin images are
+served from MinIO through `/uploads/` and cached for 30 days. Responses include
+`X-Cache-Status`, which reports values such as `MISS` and `HIT`. HTML and API
+responses use `Cache-Control: no-cache`.
+
+Run `make provision`, `make storage`, and then `make deploy APP_IMAGE_TAG=...`
+when enabling this setup on an existing environment. Provisioning removes the
+old public firewall rules for ports `8080` and `9090`.
+
 ## S3-compatible object storage
 
-`make storage` provisions a private `bulletin-images` bucket in MinIO and
+`make storage` provisions the `bulletin-images` bucket in MinIO and
 configures two separate identities:
 
 - `bulletins-storage-admin` is the MinIO root identity used only by Ansible
@@ -89,6 +116,10 @@ configures two separate identities:
 - `bulletins-app` is passed to the application and has only
   `s3:GetObject` and `s3:PutObject` on
   `arn:aws:s3:::bulletin-images/bulletins/*`.
+
+Objects under the `bulletins/` prefix are publicly readable because they are
+public bulletin images served through Nginx. Listing the bucket and writing or
+deleting objects still require credentials.
 
 The root password and application secret key are stored in the encrypted
 `group_vars/all/object_storage_vault.yml`. Do not add either credential
@@ -115,6 +146,6 @@ make smoke
 ```
 The check uploads a text object through `POST /api/files/upload`, requests a
 fresh link from `GET /api/files/view`, downloads the object through the
-presigned URL from the Ansible controller, and compares its contents. It also
+public Nginx URL from the Ansible controller, and compares its contents. It also
 verifies that the application credentials cannot delete the object. Finally,
 Ansible removes the test object using the administrative identity.

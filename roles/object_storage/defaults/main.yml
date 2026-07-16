@@ -15,6 +15,7 @@ minio_app_object_prefix: bulletins
 minio_app_policy_name: bulletins-app-read-write
 minio_app_access_key: bulletins-app
 minio_app_secret_key: ""
+minio_public_downloads: true
 
 minio_config_dir: /var/lib/project-devops-minio/config
 minio_app_policy_file: "{{ minio_config_dir }}/application-policy.json"

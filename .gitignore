@@ -13,6 +13,8 @@ roles/*
 !roles/database_migrations/**
 !roles/storage_smoke_test
 !roles/storage_smoke_test/**
+!roles/nginx_reverse_proxy
+!roles/nginx_reverse_proxy/**
 collections/
 inventory.ini
 inventory.generated.ini

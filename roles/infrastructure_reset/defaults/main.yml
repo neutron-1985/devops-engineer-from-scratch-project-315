@@ -11,6 +11,7 @@ infrastructure_reset_postgresql_fact_file: /etc/ansible/facts.d/postgresql_firew
 infrastructure_reset_minio_container_names:
   - project-devops-minio
   - project-devops-minio-create-bucket
+  - project-devops-minio-configure-public-downloads
   - project-devops-minio-configure-user
   - project-devops-minio-configure-policy
   - project-devops-minio-attach-policy
@@ -33,4 +34,9 @@ infrastructure_reset_docker_paths:
   - /etc/apt/sources.list.d/docker.sources
   - /etc/apt/sources.list.d/docker.list
   - /etc/apt/keyrings/docker.asc
+
+infrastructure_reset_nginx_packages:
+  - nginx
+  - nginx-common
+infrastructure_reset_nginx_cache_dir: /var/cache/nginx
   - /etc/apt/trusted.gpg.d/docker.asc

@@ -7,6 +7,8 @@
 
   roles:
     - role: server_provision
+    - role: nginx_reverse_proxy
+      when: "'application' in group_names"
 
 - name: Migrate production database
   hosts: production
