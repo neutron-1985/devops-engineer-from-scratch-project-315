@@ -1,0 +1,32 @@
+---
+- name: Render application reverse proxy
+  ansible.builtin.template:
+    src: project-devops-deploy.conf.j2
+    dest: /etc/nginx/sites-available/project-devops-deploy.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload Nginx
+
+- name: Enable application reverse proxy
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/project-devops-deploy.conf
+    dest: /etc/nginx/sites-enabled/project-devops-deploy.conf
+    state: link
+  notify: Reload Nginx
+
+- name: Disable default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Validate Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

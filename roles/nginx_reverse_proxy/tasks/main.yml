@@ -1,61 +1,9 @@
 ---
-- name: Validate Nginx reverse proxy configuration
-  ansible.builtin.assert:
-    that:
-      - nginx_server_name | length > 0
-      - nginx_app_upstream is match('^http://')
-      - >-
-        not nginx_uploads_enabled | bool or
-        nginx_uploads_upstream is match('^https?://')
-      - >-
-        not nginx_uploads_enabled | bool or nginx_uploads_bucket | length > 0
-    fail_msg: "Nginx requires valid application and enabled object-storage upstreams."
+- name: Validate Nginx settings
+  ansible.builtin.import_tasks: validate.yml
 
 - name: Install Nginx
-  ansible.builtin.apt:
-    name: nginx
-    state: present
-    update_cache: true
+  ansible.builtin.import_tasks: install.yml
 
-- name: Create Nginx cache directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: www-data
-    group: www-data
-    mode: "0750"
-  loop:
-    - "{{ nginx_static_cache_path }}"
-    - "{{ nginx_uploads_cache_path }}"
-
-- name: Render application reverse proxy
-  ansible.builtin.template:
-    src: project-devops-deploy.conf.j2
-    dest: /etc/nginx/sites-available/project-devops-deploy.conf
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload Nginx
-
-- name: Enable application reverse proxy
-  ansible.builtin.file:
-    src: /etc/nginx/sites-available/project-devops-deploy.conf
-    dest: /etc/nginx/sites-enabled/project-devops-deploy.conf
-    state: link
-  notify: Reload Nginx
-
-- name: Disable default Nginx site
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: Reload Nginx
-
-- name: Validate Nginx configuration
-  ansible.builtin.command: nginx -t
-  changed_when: false
-
-- name: Enable and start Nginx
-  ansible.builtin.service:
-    name: nginx
-    state: started
-    enabled: true
+- name: Configure Nginx reverse proxy
+  ansible.builtin.import_tasks: configure.yml

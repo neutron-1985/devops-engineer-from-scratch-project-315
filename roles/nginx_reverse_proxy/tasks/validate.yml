@@ -1,0 +1,12 @@
+---
+- name: Validate Nginx reverse proxy configuration
+  ansible.builtin.assert:
+    that:
+      - nginx_server_name | length > 0
+      - nginx_app_upstream is match('^http://')
+      - >-
+        not nginx_uploads_enabled | bool or
+        nginx_uploads_upstream is match('^https?://')
+      - >-
+        not nginx_uploads_enabled | bool or nginx_uploads_bucket | length > 0
+    fail_msg: "Nginx requires valid application and enabled object-storage upstreams."
