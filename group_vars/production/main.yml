@@ -9,12 +9,27 @@ app_s3_bucket: "{{ object_storage_bucket }}"
 app_s3_region: "{{ object_storage_region }}"
 app_s3_access_key: "{{ object_storage_access_key }}"
 app_s3_secret_key: "{{ object_storage_secret_key }}"
-app_s3_cdn_url: "http://{{ nginx_server_name }}/uploads"
+app_s3_cdn_url: "https://{{ nginx_server_name }}/uploads"
 
 nginx_server_name: n-devops.jumpingcrab.com
+nginx_tls_enabled: true
 nginx_uploads_enabled: true
 nginx_uploads_upstream: "{{ app_s3_endpoint }}"
 nginx_uploads_bucket: "{{ app_s3_bucket }}"
+
+certbot_install_method: package
+certbot_auto_renew: false
+certbot_create_if_missing: true
+certbot_create_method: webroot
+certbot_admin_email: neutron-1985@live.ru
+certbot_webroot: /var/www/letsencrypt
+certbot_certs:
+  - name: "{{ nginx_tls_certificate_name }}"
+    email: "{{ certbot_admin_email }}"
+    webroot: "{{ certbot_webroot }}"
+    domains:
+      - "{{ nginx_server_name }}"
+    deploy_hook: "{{ tls_certificate_deploy_hook }}"
 
 app_external_services_environment:
   SPRING_DATASOURCE_URL: "{{ app_database_url }}"

@@ -1,0 +1,52 @@
+---
+- name: Create ACME challenge webroot
+  ansible.builtin.file:
+    path: "{{ certbot_webroot }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0755"
+  when: nginx_tls_enabled | bool
+
+- name: Check whether the TLS certificate exists
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ nginx_tls_certificate_name }}/fullchain.pem"
+  register: nginx_tls_certificate
+  when: nginx_tls_enabled | bool
+
+- name: Select Nginx TLS state
+  ansible.builtin.set_fact:
+    nginx_tls_certificate_exists: >-
+      {{
+        nginx_tls_enabled | bool
+        and ((nginx_tls_certificate.stat | default({})).exists | default(false))
+      }}
+
+- name: Render application reverse proxy
+  ansible.builtin.template:
+    src: project-devops-deploy.conf.j2
+    dest: /etc/nginx/sites-available/project-devops-deploy.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload Nginx
+
+- name: Enable application reverse proxy
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/project-devops-deploy.conf
+    dest: /etc/nginx/sites-enabled/project-devops-deploy.conf
+    state: link
+  notify: Reload Nginx
+
+- name: Disable default Nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Validate Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Apply Nginx configuration
+  ansible.builtin.meta: flush_handlers

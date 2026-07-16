@@ -38,5 +38,6 @@ infrastructure_reset_docker_paths:
 infrastructure_reset_nginx_packages:
   - nginx
   - nginx-common
+  - certbot
 infrastructure_reset_nginx_cache_dir: /var/cache/nginx
   - /etc/apt/trusted.gpg.d/docker.asc

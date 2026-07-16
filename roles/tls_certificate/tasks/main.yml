@@ -1,0 +1,18 @@
+---
+- name: Validate TLS certificate settings
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Configure Certbot deploy hook
+  ansible.builtin.import_tasks: deploy_hook.yml
+
+- name: Install Certbot and issue certificates
+  ansible.builtin.include_role:
+    name: geerlingguy.certbot
+
+- name: Configure certificate renewal timer
+  ansible.builtin.import_tasks: renewal.yml
+
+- name: Reconfigure Nginx after certificate issuance
+  ansible.builtin.include_role:
+    name: nginx_reverse_proxy
+    tasks_from: configure.yml

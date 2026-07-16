@@ -9,10 +9,11 @@ Ansible configuration for provisioning and deploying the `project-devops-deploy`
 
 The production service is available at the following addresses:
 
-- Application: `http://n-devops.jumpingcrab.com:80/`
-- Swagger UI: `http://n-devops.jumpingcrab.com:80/swagger-ui/index.html`
+- Application: `https://n-devops.jumpingcrab.com/`
+- Swagger UI: `https://n-devops.jumpingcrab.com/swagger-ui/index.html`
 
-Nginx accepts public HTTP traffic on port `80`. Application port `8080` and
+Nginx redirects public HTTP traffic on port `80` to HTTPS on port `443`.
+Application port `8080` and
 Actuator port `9090` are bound to `127.0.0.1` and are not exposed publicly.
 
 ## Requirements
@@ -71,6 +72,7 @@ The workflow validates the tag, runs Ansible in check mode, and then performs th
 | `make database` | Provision PostgreSQL |
 | `make storage` | Provision MinIO object storage |
 | `make smoke` | Upload and download a test object through the deployed application |
+| `make tls-check` | Verify HTTPS, TLS policy, certificate renewal, and the Certbot timer |
 | `make reset` | Remove project resources, data, deploy users, Docker, and UFW from infrastructure hosts |
 | `make ansible-check APP_IMAGE_TAG=...` | Check a deployment without applying it |
 | `make deploy APP_IMAGE_TAG=...` | Deploy the selected application image |
@@ -95,6 +97,26 @@ The `nginx_reverse_proxy` role configures `n-devops.jumpingcrab.com` as the
 virtual host and proxies dynamic requests to the application on
 `127.0.0.1:8080`. The application and Actuator ports remain available only on
 the server loopback interface.
+
+The `tls_certificate` role configures `geerlingguy.certbot` to obtain a Let's
+Encrypt certificate through the HTTP-01 webroot challenge. The
+`nginx_reverse_proxy` role owns only the Nginx package, reverse proxy, caching,
+HTTP bootstrap, redirect, and TLS policy. Certbot variables are declared in
+the production group variables rather than hidden inside either role.
+
+Cron renewal in the external role is disabled in favor of the
+distribution-provided `certbot.timer`. After a successful renewal, a deploy
+hook validates the Nginx configuration and reloads Nginx without dropping
+active connections. Run the complete HTTPS smoke test with `make tls-check`.
+
+Before the first provisioning run, DNS for `n-devops.jumpingcrab.com` must
+resolve to the application host and inbound TCP ports 80 and 443 must be
+reachable. For a narrower manual renewal check on the host, run:
+
+```bash
+sudo certbot renew --dry-run --run-deploy-hooks
+sudo systemctl status certbot.timer
+```
 
 Frontend files under `/assets/` are cached by Nginx and clients for one year;
 Vite includes a content hash in their names. Uploaded bulletin images are

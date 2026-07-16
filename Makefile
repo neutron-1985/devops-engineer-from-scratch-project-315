@@ -51,7 +51,10 @@ storage: ansible-configure
 smoke: ansible-configure
 	$(ANSIBLE) playbook.yml --tags smoke --limit production
 
+tls-check: ansible-configure
+	$(ANSIBLE) playbook.yml --tags tls-smoke --limit production
+
 reset: ansible-configure
 	$(ANSIBLE) playbook.yml --tags reset --limit "$(RESET_LIMIT)" -e infrastructure_reset_confirm=true
 
-.PHONY: all ansible-install ansible-configure vault-rekey provision deploy ansible-check database storage smoke reset
+.PHONY: all ansible-install ansible-configure vault-rekey provision deploy ansible-check database storage smoke tls-check reset

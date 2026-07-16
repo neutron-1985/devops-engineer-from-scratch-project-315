@@ -9,6 +9,10 @@
     - role: server_provision
     - role: nginx_reverse_proxy
       when: "'application' in group_names"
+    - role: tls_certificate
+      when:
+        - "'application' in group_names"
+        - nginx_tls_enabled | default(false) | bool
 
 - name: Migrate production database
   hosts: production
@@ -44,6 +48,17 @@
 
   roles:
     - role: storage_smoke_test
+
+- name: Verify production HTTPS and certificate renewal
+  hosts: production
+  remote_user: "{{ provision_user }}"
+  become: true
+  gather_facts: false
+  tags:
+    - tls-smoke
+
+  roles:
+    - role: tls_smoke_test
 
 - name: Provision PostgreSQL database
   hosts: database

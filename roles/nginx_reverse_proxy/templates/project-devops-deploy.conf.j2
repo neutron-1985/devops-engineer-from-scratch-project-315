@@ -1,5 +1,7 @@
 proxy_cache_path {{ nginx_static_cache_path }} levels=1:2 keys_zone=project_static:10m
                  max_size={{ nginx_static_cache_max_size }} inactive=7d use_temp_path=off;
+proxy_headers_hash_max_size 1024;
+proxy_headers_hash_bucket_size 128;
 {% if nginx_uploads_enabled | bool %}
 proxy_cache_path {{ nginx_uploads_cache_path }} levels=1:2 keys_zone=project_uploads:20m
                  max_size={{ nginx_uploads_cache_max_size }} inactive=30d use_temp_path=off;
@@ -9,6 +11,35 @@ server {
     listen {{ nginx_listen_port }};
     listen [::]:{{ nginx_listen_port }};
     server_name {{ nginx_server_name }};
+
+{% if nginx_tls_enabled | bool %}
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ certbot_webroot }};
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+{% if nginx_tls_certificate_exists | bool %}
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen {{ nginx_tls_listen_port }} ssl;
+    listen [::]:{{ nginx_tls_listen_port }} ssl;
+    server_name {{ nginx_server_name }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ nginx_tls_certificate_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ nginx_tls_certificate_name }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:TLS:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+{% endif %}
+{% endif %}
 
     client_max_body_size {{ nginx_client_max_body_size }};
 
@@ -60,5 +91,6 @@ server {
         proxy_set_header Connection "";
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

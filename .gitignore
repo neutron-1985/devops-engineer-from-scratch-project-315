@@ -15,6 +15,10 @@ roles/*
 !roles/storage_smoke_test/**
 !roles/nginx_reverse_proxy
 !roles/nginx_reverse_proxy/**
+!roles/tls_certificate
+!roles/tls_certificate/**
+!roles/tls_smoke_test
+!roles/tls_smoke_test/**
 collections/
 inventory.ini
 inventory.generated.ini

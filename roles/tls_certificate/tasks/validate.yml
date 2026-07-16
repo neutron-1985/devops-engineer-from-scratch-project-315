@@ -1,0 +1,13 @@
+---
+- name: Validate Certbot configuration
+  ansible.builtin.assert:
+    that:
+      - not certbot_auto_renew | bool
+      - certbot_create_if_missing | bool
+      - certbot_create_method == 'webroot'
+      - certbot_admin_email | length > 3
+      - certbot_certs | length > 0
+      - certbot_certs | map(attribute='domains') | flatten | length > 0
+    fail_msg: >-
+      TLS provisioning requires webroot certificate creation and disables the
+      external role's cron job in favor of certbot.timer.

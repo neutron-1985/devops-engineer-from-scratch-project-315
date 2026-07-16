@@ -8,6 +8,7 @@ server_provision_users:
 
 server_provision_application_ports:
   - "80"
+  - "443"
 server_provision_revoked_application_ports:
   - "8080"
   - "9090"
