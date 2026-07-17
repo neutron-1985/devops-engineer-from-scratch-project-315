@@ -1,0 +1,9 @@
+---
+- name: Validate firewall inputs
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Install firewall
+  ansible.builtin.import_tasks: install.yml
+
+- name: Configure firewall
+  ansible.builtin.import_tasks: configure.yml

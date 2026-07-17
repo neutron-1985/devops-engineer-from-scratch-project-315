@@ -1,0 +1,19 @@
+---
+- name: "Step 1 | Provision application hosts"
+  hosts: application
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_01
+    - provision
+
+  roles:
+    - role: geerlingguy.docker
+    - role: server_provision
+    - role: firewall
+      firewall_allowed_tcp_ports:
+        - "8080"
+      firewall_revoked_tcp_ports:
+        - "80"
+        - "443"
+        - "9090"

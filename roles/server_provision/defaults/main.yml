@@ -1,18 +1,4 @@
 ---
-server_provision_ssh_port: "22"
-server_provision_base_firewall_comment: project-devops-base
-
 server_provision_users:
-  - name: "{{ deploy_user }}"
+  - name: "{{ vault_inventory.deploy_user }}"
     groups: docker
-
-server_provision_application_ports:
-  - "80"
-server_provision_revoked_application_ports:
-  - "8080"
-  - "9090"
-server_provision_application_firewall_comment: project-devops-application
-
-server_provision_app_data_dir: /var/lib/project-devops-deploy
-server_provision_app_uploads_dir: "{{ server_provision_app_data_dir }}/bulletin-images"
-server_provision_app_log_dir: /var/log/project-devops-deploy

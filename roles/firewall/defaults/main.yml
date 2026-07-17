@@ -1,0 +1,6 @@
+---
+firewall_allowed_tcp_ports: []
+firewall_revoked_tcp_ports: []
+firewall_base_comment: project-devops-base
+firewall_application_comment: project-devops-application
+firewall_manage_base_policy: true

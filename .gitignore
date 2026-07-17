@@ -1,6 +1,5 @@
 roles/geerlingguy.*/
 collections/
 inventory.ini
-inventory.generated.ini
 .vault-password
 .generated/

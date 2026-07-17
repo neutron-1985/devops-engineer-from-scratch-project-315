@@ -20,7 +20,7 @@
     - name: Render production inventory
       ansible.builtin.template:
         src: "{{ playbook_dir }}/../templates/inventory.ini.j2"
-        dest: "{{ playbook_dir }}/../inventory.generated.ini"
+        dest: "{{ playbook_dir }}/../.generated/inventory.ini"
         mode: "0600"
 
     - name: Render SSH known hosts

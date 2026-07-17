@@ -1,0 +1,10 @@
+---
+- name: Require distinct provisioning and deployment users
+  ansible.builtin.assert:
+    that:
+      - vault_inventory.provision_user | default('') | length > 0
+      - vault_inventory.deploy_user | default('') | length > 0
+      - (vault_inventory.deploy_user | default('')) != (vault_inventory.provision_user | default(''))
+    fail_msg: >-
+      server_provision requires non-empty and distinct
+      vault_inventory.provision_user and vault_inventory.deploy_user values.
