@@ -1,15 +1,21 @@
 ---
 # Docker image and container identity.
-app_container_name: project-devops-deploy
+app_image_registry: docker.io
+app_image_namespace: neutron1985
+app_image_name: project-devops-deploy
 app_image_tag: latest
+app_image_repository: "{{ app_image_registry }}/{{ app_image_namespace }}/{{ app_image_name }}"
+app_container_name: project-devops-deploy
 app_image: "{{ app_image_repository }}:{{ app_image_tag }}"
 
 # Published container ports.
+app_bind_address: 127.0.0.1
 app_public_port: "8080"
 app_container_management_port: "9090"
 
 # Runtime configuration passed to the Spring Boot application.
 app_profile: dev
+app_storage_backend: local
 app_java_opts: "-Xms256m -Xmx512m"
 
 # PostgreSQL connection used by the prod profile.
@@ -41,12 +47,11 @@ app_external_services_environment: {}
 # Persistent host paths. Uploaded images are mounted into the path used by LocalImageStorageService.
 app_data_dir: /var/lib/project-devops-deploy
 app_uploads_dir: "{{ app_data_dir }}/bulletin-images"
-app_log_dir: /var/log/project-devops-deploy
 app_container_uploads_dir: /tmp/bulletin-images
 
 # Health checks.
-app_healthcheck_retries: 30
-app_healthcheck_delay: 5
+app_healthcheck_retries: 20
+app_healthcheck_delay: 3
 app_healthcheck_path: /
 app_healthcheck_status_codes:
   - 200

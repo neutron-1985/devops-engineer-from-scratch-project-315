@@ -1,17 +1,4 @@
 ---
-- name: Create application persistent directories
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    mode: "{{ item.mode }}"
-  loop:
-    - path: "{{ app_data_dir }}"
-      mode: "0755"
-    - path: "{{ app_uploads_dir }}"
-      mode: "0777"
-    - path: "{{ app_log_dir }}"
-      mode: "0755"
-
 - name: Inspect current application container
   community.docker.docker_container_info:
     name: "{{ app_container_name }}"
@@ -19,8 +6,8 @@
 
 - name: Remember current application image for rollback
   ansible.builtin.set_fact:
-    app_rollback_image: "{{ app_existing_container.container.Image | default(app_existing_container.container.Config.Image) }}"
-  when: app_existing_container.exists | default(false)
+    app_rollback_image: "{{ app_existing_container.container.Image }}"
+  when: app_existing_container.exists
 
 - name: Deploy application container with automatic rollback
   block:
@@ -39,8 +26,8 @@
         recreate: true
         pull: always
         ports:
-          - "127.0.0.1:{{ app_public_port }}:8080"
-          - "127.0.0.1:{{ app_container_management_port }}:9090"
+          - "{{ app_bind_address }}:{{ app_public_port }}:8080"
+          - "{{ app_bind_address }}:{{ app_container_management_port }}:9090"
         volumes:
           - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
         env: "{{ app_common_environment | combine(app_external_services_environment) }}"
@@ -78,14 +65,14 @@
       when: not ansible_check_mode
 
   rescue:
-    - name: Report failed deployment rollback
-      ansible.builtin.debug:
-        msg: 'Deployment of {{ app_image }} failed; rolling back to {{ app_rollback_image | default("no previous image") }}'
-
     - name: Fail when rollback image is unavailable
       ansible.builtin.fail:
-        msg: "Deployment failed and no previous application container image is available for rollback."
+        msg: "Deployment failed and no previous application image is available for rollback."
       when: app_rollback_image is not defined
+
+    - name: Report deployment rollback
+      ansible.builtin.debug:
+        msg: "Deployment of {{ app_image }} failed; rolling back to {{ app_rollback_image }}."
 
     - name: Roll back application container
       community.docker.docker_container:
@@ -95,8 +82,8 @@
         restart_policy: always
         recreate: true
         ports:
-          - "127.0.0.1:{{ app_public_port }}:8080"
-          - "127.0.0.1:{{ app_container_management_port }}:9090"
+          - "{{ app_bind_address }}:{{ app_public_port }}:8080"
+          - "{{ app_bind_address }}:{{ app_container_management_port }}:9090"
         volumes:
           - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
         env: "{{ app_common_environment | combine(app_external_services_environment) }}"
