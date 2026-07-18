@@ -1,6 +1,4 @@
 ---
 firewall_policy_allowed_tcp_ports: []
 firewall_policy_revoked_tcp_ports: []
-firewall_policy_base_comment: project-devops-base
-firewall_policy_application_comment: project-devops-application
 firewall_policy_manage_base: true

@@ -1,10 +1,5 @@
 ---
-# Docker image and container identity.
-app_image_registry: docker.io
-app_image_namespace: neutron1985
-app_image_name: project-devops-deploy
 app_image_tag: latest
-app_image_repository: "{{ app_image_registry }}/{{ app_image_namespace }}/{{ app_image_name }}"
 app_container_name: project-devops-deploy
 app_image: "{{ app_image_repository }}:{{ app_image_tag }}"
 
@@ -17,14 +12,6 @@ app_container_management_port: "9090"
 app_profile: dev
 app_storage_backend: local
 app_java_opts: "-Xms256m -Xmx512m"
-
-# S3-compatible object storage used by the prod profile.
-app_s3_bucket: ""
-app_s3_region: ""
-app_s3_endpoint: ""
-app_s3_access_key: ""
-app_s3_secret_key: ""
-app_s3_cdn_url: ""
 
 # Environment shared by every application profile.
 app_common_environment:

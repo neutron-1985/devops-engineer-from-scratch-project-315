@@ -1,0 +1,183 @@
+---
+project:
+  database:
+    host: "{{ hostvars[groups['database'] | first].ansible_host }}"
+    port: "5432"
+    name: bulletins
+    username: bulletins_app
+    image: postgres:17-alpine
+    container_name: project-devops-postgresql
+    volume_name: project-devops-postgresql-data
+
+  object_storage:
+    provider: rustfs
+    api_port: "9000"
+    endpoint: >-
+      http://{{ hostvars[groups['object_storage'] | first].ansible_host }}:{{ project.object_storage.api_port }}
+    bucket: bulletin-images
+    region: us-east-1
+    object_prefix: bulletins
+    policy_name: bulletins-app-read-write
+    application_access_key: bulletins-app
+    admin_access_key: bulletins-storage-admin
+    allowed_cidrs:
+      - 0.0.0.0/0
+    minio:
+      image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+      client_image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+      container_name: project-devops-minio
+      volume_name: project-devops-minio-data
+    rustfs:
+      image: rustfs/rustfs:1.0.0-beta.3
+      client_image: rustfs/rc:v0.1.27
+      volume_init_image: alpine:3.22.1
+      container_name: project-devops-rustfs
+      volume_name: project-devops-rustfs-data
+      client_config_volume_name: project-devops-rustfs-client-config
+      container_uid: "10001"
+
+  application:
+    image_repository: docker.io/neutron1985/project-devops-deploy
+    image_tag: latest
+    container_name: project-devops-deploy
+    data_dir: /var/lib/project-devops-deploy
+    log_dir: /var/log/project-devops-deploy
+    dev_profile: dev
+    production_profile: prod
+    dev_storage_backend: local
+    production_storage_backend: s3
+
+  nginx:
+    server_name: n-devops.jumpingcrab.com
+    uploads_enabled: true
+
+  tls:
+    listen_port: "443"
+    certbot_install_method: package
+    certbot_auto_renew: false
+    certbot_create_if_missing: true
+    certbot_create_method: webroot
+    certbot_admin_email: neutron-1985@live.ru
+    certbot_webroot: /var/www/letsencrypt
+
+# Vault namespaces exposed under the names used by existing roles.
+vault_inventory: "{{ project_vault.inventory }}"
+database_vault: "{{ project_vault.database }}"
+
+# Database
+database_host: "{{ project.database.host }}"
+database_port: "{{ project.database.port }}"
+database_name: "{{ project.database.name }}"
+database_username: "{{ project.database.username }}"
+database_password: "{{ project_vault.database.postgresql_password }}"
+database_url: >-
+  jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
+
+postgresql_password: "{{ project_vault.database.postgresql_password }}"
+postgresql_allowed_cidrs: "{{ project_vault.database.application_allowed_cidrs }}"
+postgresql_image: "{{ project.database.image }}"
+postgresql_container_name: "{{ project.database.container_name }}"
+postgresql_database: "{{ project.database.name }}"
+postgresql_user: "{{ project.database.username }}"
+postgresql_port: "{{ project.database.port }}"
+postgresql_volume_name: "{{ project.database.volume_name }}"
+
+# Object storage
+object_storage_service_provider: "{{ project.object_storage.provider }}"
+object_storage_bucket: "{{ project.object_storage.bucket }}"
+object_storage_region: "{{ project.object_storage.region }}"
+object_storage_object_prefix: "{{ project.object_storage.object_prefix }}"
+object_storage_policy_name: "{{ project.object_storage.policy_name }}"
+object_storage_access_key: "{{ project.object_storage.application_access_key }}"
+object_storage_secret_key: "{{ project_vault.object_storage.application_secret_key }}"
+object_storage_admin_access_key: "{{ project.object_storage.admin_access_key }}"
+object_storage_admin_secret_key: "{{ project_vault.object_storage.admin_secret_key }}"
+
+minio_root_user: "{{ object_storage_admin_access_key }}"
+minio_root_password: "{{ object_storage_admin_secret_key }}"
+minio_image: "{{ project.object_storage.minio.image }}"
+minio_client_image: "{{ project.object_storage.minio.client_image }}"
+minio_container_name: "{{ project.object_storage.minio.container_name }}"
+minio_volume_name: "{{ project.object_storage.minio.volume_name }}"
+minio_api_port: "{{ project.object_storage.api_port }}"
+minio_bucket: "{{ object_storage_bucket }}"
+minio_region: "{{ object_storage_region }}"
+minio_app_object_prefix: "{{ object_storage_object_prefix }}"
+minio_app_policy_name: "{{ object_storage_policy_name }}"
+minio_app_access_key: "{{ object_storage_access_key }}"
+minio_app_secret_key: "{{ object_storage_secret_key }}"
+minio_allowed_cidrs: "{{ project.object_storage.allowed_cidrs }}"
+
+rustfs_bucket: "{{ object_storage_bucket }}"
+rustfs_image: "{{ project.object_storage.rustfs.image }}"
+rustfs_client_image: "{{ project.object_storage.rustfs.client_image }}"
+rustfs_volume_init_image: "{{ project.object_storage.rustfs.volume_init_image }}"
+rustfs_container_name: "{{ project.object_storage.rustfs.container_name }}"
+rustfs_volume_name: "{{ project.object_storage.rustfs.volume_name }}"
+rustfs_client_config_volume_name: "{{ project.object_storage.rustfs.client_config_volume_name }}"
+rustfs_container_uid: "{{ project.object_storage.rustfs.container_uid }}"
+rustfs_api_port: "{{ project.object_storage.api_port }}"
+rustfs_region: "{{ object_storage_region }}"
+rustfs_app_object_prefix: "{{ object_storage_object_prefix }}"
+rustfs_app_policy_name: "{{ object_storage_policy_name }}"
+rustfs_app_access_key: "{{ object_storage_access_key }}"
+rustfs_app_secret_key: "{{ object_storage_secret_key }}"
+rustfs_access_key: "{{ object_storage_admin_access_key }}"
+rustfs_secret_key: "{{ object_storage_admin_secret_key }}"
+rustfs_allowed_cidrs: "{{ project.object_storage.allowed_cidrs }}"
+
+# Application
+app_image_repository: "{{ project.application.image_repository }}"
+app_image_tag: "{{ project.application.image_tag }}"
+app_container_name: "{{ project.application.container_name }}"
+app_data_dir: "{{ project.application.data_dir }}"
+app_profile: >-
+  {{ project.application.production_profile
+     if 'production' in group_names
+     else project.application.dev_profile }}
+app_storage_backend: >-
+  {{ project.application.production_storage_backend
+     if 'production' in group_names
+     else project.application.dev_storage_backend }}
+app_s3_endpoint: "{{ project.object_storage.endpoint }}"
+app_s3_bucket: "{{ object_storage_bucket }}"
+app_s3_region: "{{ object_storage_region }}"
+app_s3_access_key: "{{ object_storage_access_key }}"
+app_s3_secret_key: "{{ object_storage_secret_key }}"
+app_s3_cdn_url: "https://{{ nginx_server_name }}/uploads"
+
+app_external_services_environment:
+  SPRING_DATASOURCE_URL: "{{ database_url }}"
+  SPRING_DATASOURCE_USERNAME: "{{ database_username }}"
+  SPRING_DATASOURCE_PASSWORD: "{{ database_password }}"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  STORAGE_S3_BUCKET: "{{ app_s3_bucket }}"
+  STORAGE_S3_REGION: "{{ app_s3_region }}"
+  STORAGE_S3_ENDPOINT: "{{ app_s3_endpoint }}"
+  STORAGE_S3_ACCESSKEY: "{{ app_s3_access_key }}"
+  STORAGE_S3_SECRETKEY: "{{ app_s3_secret_key }}"
+  STORAGE_S3_CDNURL: "{{ app_s3_cdn_url }}"
+
+# Nginx
+nginx_server_name: "{{ project.nginx.server_name }}"
+nginx_uploads_enabled: "{{ project.nginx.uploads_enabled }}"
+nginx_uploads_upstream: "{{ app_s3_endpoint }}"
+nginx_uploads_bucket: "{{ app_s3_bucket }}"
+
+# TLS
+nginx_https_enabled: true
+nginx_https_listen_port: "{{ project.tls.listen_port }}"
+nginx_https_certificate_name: "{{ nginx_server_name }}"
+certbot_install_method: "{{ project.tls.certbot_install_method }}"
+certbot_auto_renew: "{{ project.tls.certbot_auto_renew }}"
+certbot_create_if_missing: "{{ project.tls.certbot_create_if_missing }}"
+certbot_create_method: "{{ project.tls.certbot_create_method }}"
+certbot_admin_email: "{{ project.tls.certbot_admin_email }}"
+certbot_webroot: "{{ project.tls.certbot_webroot }}"
+certbot_certs:
+  - name: "{{ nginx_https_certificate_name }}"
+    email: "{{ certbot_admin_email }}"
+    webroot: "{{ certbot_webroot }}"
+    domains:
+      - "{{ nginx_server_name }}"
+    deploy_hook: "{{ tls_certificate_deploy_hook }}"

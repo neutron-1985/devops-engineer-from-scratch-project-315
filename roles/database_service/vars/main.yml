@@ -1,0 +1,5 @@
+---
+postgresql_fact_dir: /etc/ansible/facts.d
+postgresql_fact_file: "{{ postgresql_fact_dir }}/postgresql_firewall.fact"
+postgresql_firewall_comment: project-devops-postgresql
+postgresql_previous_allowed_cidrs: "{{ ansible_local.postgresql_firewall | default([]) }}"

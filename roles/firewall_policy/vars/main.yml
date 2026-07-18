@@ -1,0 +1,3 @@
+---
+firewall_policy_base_comment: project-devops-base
+firewall_policy_application_comment: project-devops-application

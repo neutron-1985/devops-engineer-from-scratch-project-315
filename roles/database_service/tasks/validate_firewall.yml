@@ -2,9 +2,9 @@
 - name: Validate PostgreSQL firewall configuration
   ansible.builtin.assert:
     that:
-      - postgresql_allowed_cidrs | length > 0
+      - postgresql_allowed_cidrs | default([]) | length > 0
       - >-
-        (postgresql_allowed_cidrs
+        (postgresql_allowed_cidrs | default([])
         | select('match', '^[0-9.]+/[0-9]+$')
-        | list) == postgresql_allowed_cidrs
+        | list) == (postgresql_allowed_cidrs | default([]))
     fail_msg: PostgreSQL firewall requires a non-empty list of IPv4 CIDRs.

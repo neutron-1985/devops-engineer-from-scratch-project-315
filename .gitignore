@@ -1,5 +1,6 @@
 roles/geerlingguy.*/
 collections/
-inventory.ini
+generated.inventory.ini
+generated.known_hosts
 .vault-password
-.generated/
+.vault-password.new
