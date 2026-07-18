@@ -1,0 +1,66 @@
+---
+- name: "Step 3 | Provision database hosts"
+  hosts: database
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  vars_files:
+    - ../../group_vars/all/database_vault.yml
+    - ../../group_vars/database/main.yml
+  tags:
+    - step_03
+    - database
+
+  roles:
+    - role: geerlingguy.docker
+    - role: server_provision
+    - role: firewall
+
+  tasks:
+    - name: Configure PostgreSQL host as provisioning user
+      ansible.builtin.import_role:
+        name: database
+        tasks_from: admin
+
+- name: "Step 3 | Run PostgreSQL container"
+  hosts: database
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  vars_files:
+    - ../../group_vars/all/database_vault.yml
+    - ../../group_vars/database/main.yml
+  tags:
+    - step_03
+    - database
+
+  tasks:
+    - name: Manage PostgreSQL container as deployment user
+      ansible.builtin.import_role:
+        name: database
+        tasks_from: containers
+
+- name: "Step 3 | Migrate database and switch application to production"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - ../../group_vars/all/database_vault.yml
+    - ../../group_vars/all/database.yml
+  tags:
+    - step_03
+    - database
+
+  vars:
+    app_profile: prod
+    app_storage_backend: local
+    app_bind_address: 0.0.0.0
+    app_external_services_environment:
+      SPRING_DATASOURCE_URL: "{{ database_url }}"
+      SPRING_DATASOURCE_USERNAME: "{{ database_username }}"
+      SPRING_DATASOURCE_PASSWORD: "{{ database_password }}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+  roles:
+    - role: database_migrations
+    - role: app_deploy

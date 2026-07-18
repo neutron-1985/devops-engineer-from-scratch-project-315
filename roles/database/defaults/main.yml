@@ -14,4 +14,3 @@ postgresql_firewall_comment: project-devops-postgresql
 postgresql_allowed_cidrs: []
 postgresql_previous_allowed_cidrs: "{{ ansible_local.postgresql_firewall | default([]) }}"
 
-postgresql_manage_ufw: true

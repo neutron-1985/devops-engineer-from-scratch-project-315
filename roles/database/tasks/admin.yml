@@ -1,0 +1,6 @@
+---
+- name: Validate PostgreSQL configuration for host administration
+  ansible.builtin.import_tasks: validate_firewall.yml
+
+- name: Configure PostgreSQL firewall
+  ansible.builtin.import_tasks: firewall.yml

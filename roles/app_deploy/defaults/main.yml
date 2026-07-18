@@ -18,15 +18,6 @@ app_profile: dev
 app_storage_backend: local
 app_java_opts: "-Xms256m -Xmx512m"
 
-# PostgreSQL connection used by the prod profile.
-app_database_host: ""
-app_database_port: "5432"
-app_database_name: bulletins
-app_database_username: bulletins_app
-app_database_password: ""
-app_database_url: >-
-  jdbc:postgresql://{{ app_database_host }}:{{ app_database_port }}/{{ app_database_name }}
-
 # S3-compatible object storage used by the prod profile.
 app_s3_bucket: ""
 app_s3_region: ""

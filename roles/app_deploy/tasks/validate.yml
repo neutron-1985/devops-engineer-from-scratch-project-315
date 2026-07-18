@@ -9,10 +9,10 @@
 - name: Validate production database configuration
   ansible.builtin.assert:
     that:
-      - app_database_host | length > 0
-      - app_database_name | length > 0
-      - app_database_username | length > 0
-      - app_database_password | length > 0
+      - database_host | length > 0
+      - database_name | length > 0
+      - database_username | length > 0
+      - database_password | length > 0
     fail_msg: "The prod profile requires PostgreSQL connection variables."
   when: app_profile == "prod"
   no_log: true

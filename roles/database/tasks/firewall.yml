@@ -19,6 +19,7 @@
     src: "{{ item }}"
     comment: "{{ postgresql_firewall_comment }}"
   loop: "{{ postgresql_allowed_cidrs }}"
+  
 - name: Create Ansible local facts directory
   ansible.builtin.file:
     path: "{{ postgresql_fact_dir }}"
