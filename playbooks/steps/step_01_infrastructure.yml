@@ -9,11 +9,11 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: server_provision
-    - role: firewall
-      firewall_allowed_tcp_ports:
+    - role: deployment_access
+    - role: firewall_policy
+      firewall_policy_allowed_tcp_ports:
         - "8080"
-      firewall_revoked_tcp_ports:
+      firewall_policy_revoked_tcp_ports:
         - "80"
         - "443"
         - "9090"

@@ -5,20 +5,20 @@
     direction: in
     proto: tcp
     port: "{{ vault_inventory.ssh_port }}"
-    comment: "{{ firewall_base_comment }}-ssh"
-  when: firewall_manage_base_policy | bool
+    comment: "{{ firewall_policy_base_comment }}-ssh"
+  when: firewall_policy_manage_base | bool
 
 - name: Set default incoming policy to deny
   community.general.ufw:
     direction: incoming
     policy: deny
-  when: firewall_manage_base_policy | bool
+  when: firewall_policy_manage_base | bool
 
 - name: Set default outgoing policy to allow
   community.general.ufw:
     direction: outgoing
     policy: allow
-  when: firewall_manage_base_policy | bool
+  when: firewall_policy_manage_base | bool
 
 - name: Revoke obsolete public TCP ports
   community.general.ufw:
@@ -26,9 +26,9 @@
     direction: in
     port: "{{ item }}"
     proto: tcp
-    comment: "{{ firewall_application_comment }}"
+    comment: "{{ firewall_policy_application_comment }}"
     delete: true
-  loop: "{{ firewall_revoked_tcp_ports }}"
+  loop: "{{ firewall_policy_revoked_tcp_ports }}"
 
 - name: Allow current public TCP ports
   community.general.ufw:
@@ -36,10 +36,10 @@
     direction: in
     port: "{{ item }}"
     proto: tcp
-    comment: "{{ firewall_application_comment }}"
-  loop: "{{ firewall_allowed_tcp_ports }}"
+    comment: "{{ firewall_policy_application_comment }}"
+  loop: "{{ firewall_policy_allowed_tcp_ports }}"
 
 - name: Enable UFW
   community.general.ufw:
     state: enabled
-  when: firewall_manage_base_policy | bool
+  when: firewall_policy_manage_base | bool

@@ -1,0 +1,10 @@
+---
+- name: Validate firewall policy configuration
+  ansible.builtin.assert:
+    that:
+      - (vault_inventory.ssh_port | string) is match('^[0-9]+$')
+      - firewall_policy_allowed_tcp_ports | intersect(firewall_policy_revoked_tcp_ports) | length == 0
+      - vault_inventory.ssh_port not in firewall_policy_revoked_tcp_ports
+    fail_msg: >-
+      firewall_policy requires a numeric SSH port, disjoint allowed and
+      revoked TCP port lists, and an SSH port that is not revoked.

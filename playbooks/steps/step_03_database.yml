@@ -3,31 +3,25 @@
   hosts: database
   remote_user: "{{ vault_inventory.provision_user }}"
   become: true
-  vars_files:
-    - ../../group_vars/all/database_vault.yml
-    - ../../group_vars/database/main.yml
   tags:
     - step_03
     - database
 
   roles:
     - role: geerlingguy.docker
-    - role: server_provision
-    - role: firewall
+    - role: deployment_access
+    - role: firewall_policy
 
   tasks:
     - name: Configure PostgreSQL host as provisioning user
       ansible.builtin.import_role:
-        name: database
+        name: database_service
         tasks_from: admin
 
 - name: "Step 3 | Run PostgreSQL container"
   hosts: database
   remote_user: "{{ vault_inventory.deploy_user }}"
   become: false
-  vars_files:
-    - ../../group_vars/all/database_vault.yml
-    - ../../group_vars/database/main.yml
   tags:
     - step_03
     - database
@@ -35,7 +29,7 @@
   tasks:
     - name: Manage PostgreSQL container as deployment user
       ansible.builtin.import_role:
-        name: database
+        name: database_service
         tasks_from: containers
 
 - name: "Step 3 | Migrate database and switch application to production"
@@ -44,9 +38,6 @@
   become: false
   gather_facts: false
   any_errors_fatal: true
-  vars_files:
-    - ../../group_vars/all/database_vault.yml
-    - ../../group_vars/all/database.yml
   tags:
     - step_03
     - database
