@@ -26,10 +26,13 @@
   ansible.builtin.import_tasks: cutover.yml
   when: object_storage_provider_switch_provider_changed | bool
 
-- name: Record active object storage provider
+- name: Record active object storage state
   ansible.builtin.copy:
-    content: "{{ object_storage_provider }}\n"
-    dest: "{{ object_storage_provider_switch_provider_marker }}"
+    content: >-
+      {{ object_storage_provider_switch_recorded_state
+         | combine({'active_provider': object_storage_provider})
+         | to_nice_json }}
+    dest: "{{ object_storage_provider_switch_state_file }}"
     mode: "0600"
   delegate_to: "{{ groups['production'] | first }}"
 

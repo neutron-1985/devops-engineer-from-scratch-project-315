@@ -10,8 +10,10 @@
       - (minio_app_secret_key | default('')) != (minio_root_password | default(''))
       - minio_app_object_prefix | default('') | length > 0
       - minio_app_policy_name | default('') | length > 0
+      - minio_container_uid | string is match('^[1-9][0-9]*$')
+      - minio_container_gid | string is match('^[1-9][0-9]*$')
     fail_msg: >-
       MinIO requires distinct root/application credentials and an application
-      policy.
+      policy, and must run with a non-root UID/GID.
   no_log: true
 

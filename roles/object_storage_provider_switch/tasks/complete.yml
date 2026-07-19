@@ -1,7 +1,9 @@
 ---
-- name: Mark application S3 transition as complete
+- name: Mark initial application S3 transition as complete
   ansible.builtin.copy:
-    content: "complete\n"
-    dest: "{{ object_storage_provider_switch_transition_marker }}"
+    content: >-
+      {{ {'active_provider': object_storage_provider,
+          'initial_s3_transition_complete': true} | to_nice_json }}
+    dest: "{{ object_storage_provider_switch_state_file }}"
     mode: "0600"
 

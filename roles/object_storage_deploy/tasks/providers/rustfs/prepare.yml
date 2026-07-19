@@ -4,7 +4,7 @@
     path: "{{ rustfs_data_dir }}"
     state: directory
     owner: "{{ rustfs_container_uid }}"
-    group: "{{ rustfs_container_uid }}"
+    group: "{{ rustfs_container_gid }}"
     mode: "0750"
 
 - name: Create RustFS client configuration directory

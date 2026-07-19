@@ -1,58 +1,58 @@
 ---
-- name: Check active object storage provider marker
+- name: Check object storage state file
   ansible.builtin.stat:
-    path: "{{ object_storage_provider_switch_provider_marker }}"
+    path: "{{ object_storage_provider_switch_state_file }}"
   delegate_to: "{{ groups['production'] | first }}"
-  register: object_storage_provider_switch_provider_marker_state
+  register: object_storage_provider_switch_state_file_info
 
-- name: Read active object storage provider marker
+- name: Read object storage state file
   ansible.builtin.slurp:
-    src: "{{ object_storage_provider_switch_provider_marker }}"
+    src: "{{ object_storage_provider_switch_state_file }}"
   delegate_to: "{{ groups['production'] | first }}"
-  register: object_storage_provider_switch_provider_marker_content
-  when: object_storage_provider_switch_provider_marker_state.stat.exists
+  register: object_storage_provider_switch_state_file_content
+  when: object_storage_provider_switch_state_file_info.stat.exists
 
-- name: Check initial S3 transition marker
-  ansible.builtin.stat:
-    path: "{{ object_storage_provider_switch_transition_marker }}"
-  delegate_to: "{{ groups['production'] | first }}"
-  register: object_storage_provider_switch_transition_marker_state
-
-- name: Read initial S3 transition marker
-  ansible.builtin.slurp:
-    src: "{{ object_storage_provider_switch_transition_marker }}"
-  delegate_to: "{{ groups['production'] | first }}"
-  register: object_storage_provider_switch_transition_marker_content
-  when: object_storage_provider_switch_transition_marker_state.stat.exists
-
-- name: Determine previous object storage provider
+- name: Normalize recorded object storage state
   ansible.builtin.set_fact:
-    object_storage_provider_switch_previous_provider: >-
-      {{ object_storage_provider_switch_provider_marker_content.content
-         | default('') | b64decode | trim }}
+    object_storage_provider_switch_recorded_state: >-
+      {{
+        (object_storage_provider_switch_state_file_content.content
+         | b64decode | from_json)
+        if object_storage_provider_switch_state_file_info.stat.exists
+        else {
+          'active_provider': '',
+          'initial_s3_transition_complete': false
+        }
+      }}
 
-- name: Determine whether this is the initial S3 transition
-  ansible.builtin.set_fact:
-    object_storage_provider_switch_initial_transition: >-
-      {{ (object_storage_provider_switch_transition_marker_content.content
-          | default('') | b64decode | trim) != 'complete' }}
-
-- name: Validate recorded provider state
+- name: Validate recorded object storage state
   ansible.builtin.assert:
     that:
+      - object_storage_provider_switch_recorded_state is mapping
       - >-
-        object_storage_provider_switch_initial_transition | bool or
-        object_storage_provider_switch_previous_provider in ['minio', 'rustfs']
+        (object_storage_provider_switch_recorded_state.active_provider
+         | default('')) in ['minio', 'rustfs']
+      - >-
+        (object_storage_provider_switch_recorded_state.initial_s3_transition_complete
+         | default(none) | type_debug) == 'bool'
     fail_msg: >-
-      The initial S3 transition is complete, but the active provider marker is
-      missing or invalid. Refusing to switch without a known source.
+      The object storage state file must contain a valid active provider
+      and boolean initial transition status.
+  when: object_storage_provider_switch_state_file_info.stat.exists
 
 - name: Determine required transition operations
   ansible.builtin.set_fact:
+    object_storage_provider_switch_initial_transition: >-
+      {{ not (object_storage_provider_switch_recorded_state.initial_s3_transition_complete
+              | default(false)) }}
     object_storage_provider_switch_provider_changed: >-
-      {{ object_storage_provider_switch_previous_provider in ['minio', 'rustfs'] and
-         object_storage_provider_switch_previous_provider != object_storage_provider }}
+      {{ (object_storage_provider_switch_recorded_state.active_provider
+          | default('')) in ['minio', 'rustfs'] and
+         (object_storage_provider_switch_recorded_state.active_provider
+          | default('')) != object_storage_provider }}
     object_storage_provider_switch_transition_required: >-
-      {{ object_storage_provider_switch_initial_transition | bool or
-         object_storage_provider_switch_previous_provider != object_storage_provider }}
+      {{ not (object_storage_provider_switch_recorded_state.initial_s3_transition_complete
+              | default(false)) or
+         (object_storage_provider_switch_recorded_state.active_provider
+          | default('')) != object_storage_provider }}
 

@@ -15,6 +15,7 @@
     restart_policy: always
     pull: missing
     network_mode: host
+    user: "{{ minio_container_uid }}:{{ minio_container_gid }}"
     command: server /data
     volumes:
       - "{{ minio_data_dir }}:/data"
