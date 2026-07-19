@@ -3,11 +3,17 @@
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: directory
-    owner: "{{ vault_inventory.deploy_user }}"
-    group: docker
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   loop:
     - path: "{{ app_data_dir }}"
+      owner: "{{ vault_inventory.deploy_user }}"
+      group: docker
       mode: "0755"
     - path: "{{ app_uploads_dir }}"
-      mode: "0777"
+      owner: "{{ app_container_uid }}"
+      group: "{{ app_container_gid }}"
+      mode: "0750"
+  loop_control:
+    label: "{{ item.path }}"

@@ -1,0 +1,4 @@
+---
+object_storage_migration_client_image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+object_storage_migration_container_name: project-devops-object-storage-migration
+

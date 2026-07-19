@@ -26,3 +26,6 @@
       retries: 10
       start_period: 20s
   no_log: true
+
+- name: Reconcile PostgreSQL credentials
+  ansible.builtin.import_tasks: reconcile_credentials.yml

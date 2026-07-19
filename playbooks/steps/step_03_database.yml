@@ -22,6 +22,7 @@
   hosts: database
   remote_user: "{{ vault_inventory.deploy_user }}"
   become: false
+  gather_facts: false
   tags:
     - step_03
     - database
@@ -46,11 +47,6 @@
     app_profile: prod
     app_storage_backend: local
     app_bind_address: 0.0.0.0
-    app_external_services_environment:
-      SPRING_DATASOURCE_URL: "{{ database_url }}"
-      SPRING_DATASOURCE_USERNAME: "{{ database_username }}"
-      SPRING_DATASOURCE_PASSWORD: "{{ database_password }}"
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
 
   roles:
     - role: database_migrations

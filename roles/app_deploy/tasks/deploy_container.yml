@@ -27,7 +27,7 @@
         pull: missing
         ports:
           - "{{ app_bind_address }}:{{ app_public_port }}:8080"
-          - "{{ app_bind_address }}:{{ app_container_management_port }}:9090"
+          - "{{ app_management_bind_address }}:{{ app_container_management_port }}:9090"
         volumes:
           - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
         env: "{{ app_common_environment | combine(app_external_services_environment) }}"
@@ -83,7 +83,7 @@
         recreate: true
         ports:
           - "{{ app_bind_address }}:{{ app_public_port }}:8080"
-          - "{{ app_bind_address }}:{{ app_container_management_port }}:9090"
+          - "{{ app_management_bind_address }}:{{ app_container_management_port }}:9090"
         volumes:
           - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
         env: "{{ app_common_environment | combine(app_external_services_environment) }}"

@@ -1,0 +1,12 @@
+---
+object_storage_host_previous_allowed_cidrs: >-
+  {{ ansible_local.object_storage_firewall
+     | default(ansible_local.object_storage_service_firewall
+     | default([])) }}
+object_storage_host_fact_dir: /etc/ansible/facts.d
+object_storage_host_fact_file: >-
+  {{ object_storage_host_fact_dir }}/object_storage_firewall.fact
+object_storage_host_legacy_fact_file: >-
+  {{ object_storage_host_fact_dir }}/object_storage_service_firewall.fact
+object_storage_host_firewall_comment: project-devops-object-storage
+

@@ -1,0 +1,7 @@
+---
+object_storage_provider: minio
+object_storage_healthcheck_retries: 20
+object_storage_healthcheck_delay: 2
+object_storage_host_allowed_cidrs:
+  - 0.0.0.0/0
+

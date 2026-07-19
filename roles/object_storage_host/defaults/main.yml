@@ -1,0 +1,4 @@
+---
+object_storage_host_allowed_cidrs:
+  - 0.0.0.0/0
+

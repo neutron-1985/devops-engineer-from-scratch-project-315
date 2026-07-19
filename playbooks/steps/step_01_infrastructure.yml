@@ -12,8 +12,8 @@
     - role: deployment_access
     - role: firewall_policy
       firewall_policy_allowed_tcp_ports:
-        - "8080"
+        - "{{ app_public_port }}"
       firewall_policy_revoked_tcp_ports:
         - "80"
         - "443"
-        - "9090"
+        - "{{ app_container_management_port }}"

@@ -1,0 +1,10 @@
+---
+object_storage_provider: rustfs
+object_storage_provider_switch_migration_port: "9100"
+object_storage_provider_switch_transition_marker: >-
+  /var/lib/project-devops-deploy/.s3-storage-transition-complete
+object_storage_provider_switch_provider_marker: >-
+  /var/lib/project-devops-deploy/.active-object-storage-provider
+object_storage_provider_switch_application_container_name: project-devops-deploy
+object_storage_provider_switch_remove_legacy_bulletins: true
+

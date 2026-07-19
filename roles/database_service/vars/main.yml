@@ -1,6 +1,7 @@
 ---
 postgresql_data_dir: /var/lib/project-devops-postgresql/data
 postgresql_container_uid: "70"
+postgresql_container_gid: "70"
 
 postgresql_fact_dir: /etc/ansible/facts.d
 postgresql_fact_file: "{{ postgresql_fact_dir }}/postgresql_firewall.fact"

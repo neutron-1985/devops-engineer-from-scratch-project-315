@@ -1,0 +1,58 @@
+---
+- name: Check active object storage provider marker
+  ansible.builtin.stat:
+    path: "{{ object_storage_provider_switch_provider_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_provider_switch_provider_marker_state
+
+- name: Read active object storage provider marker
+  ansible.builtin.slurp:
+    src: "{{ object_storage_provider_switch_provider_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_provider_switch_provider_marker_content
+  when: object_storage_provider_switch_provider_marker_state.stat.exists
+
+- name: Check initial S3 transition marker
+  ansible.builtin.stat:
+    path: "{{ object_storage_provider_switch_transition_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_provider_switch_transition_marker_state
+
+- name: Read initial S3 transition marker
+  ansible.builtin.slurp:
+    src: "{{ object_storage_provider_switch_transition_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_provider_switch_transition_marker_content
+  when: object_storage_provider_switch_transition_marker_state.stat.exists
+
+- name: Determine previous object storage provider
+  ansible.builtin.set_fact:
+    object_storage_provider_switch_previous_provider: >-
+      {{ object_storage_provider_switch_provider_marker_content.content
+         | default('') | b64decode | trim }}
+
+- name: Determine whether this is the initial S3 transition
+  ansible.builtin.set_fact:
+    object_storage_provider_switch_initial_transition: >-
+      {{ (object_storage_provider_switch_transition_marker_content.content
+          | default('') | b64decode | trim) != 'complete' }}
+
+- name: Validate recorded provider state
+  ansible.builtin.assert:
+    that:
+      - >-
+        object_storage_provider_switch_initial_transition | bool or
+        object_storage_provider_switch_previous_provider in ['minio', 'rustfs']
+    fail_msg: >-
+      The initial S3 transition is complete, but the active provider marker is
+      missing or invalid. Refusing to switch without a known source.
+
+- name: Determine required transition operations
+  ansible.builtin.set_fact:
+    object_storage_provider_switch_provider_changed: >-
+      {{ object_storage_provider_switch_previous_provider in ['minio', 'rustfs'] and
+         object_storage_provider_switch_previous_provider != object_storage_provider }}
+    object_storage_provider_switch_transition_required: >-
+      {{ object_storage_provider_switch_initial_transition | bool or
+         object_storage_provider_switch_previous_provider != object_storage_provider }}
+

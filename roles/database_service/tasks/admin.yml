@@ -14,7 +14,7 @@
     path: "{{ postgresql_data_dir }}"
     state: directory
     owner: "{{ postgresql_container_uid }}"
-    group: "{{ postgresql_container_uid }}"
+    group: "{{ postgresql_container_gid }}"
     mode: "0700"
 
 - name: Configure PostgreSQL firewall

@@ -1,0 +1,12 @@
+---
+- name: Validate object storage deployment configuration
+  ansible.builtin.assert:
+    that:
+      - object_storage_provider | default('') in ['minio', 'rustfs']
+      - object_storage_deploy_api_port | int > 0
+      - object_storage_deploy_api_port | int <= 65535
+    fail_msg: Select minio or rustfs and configure a valid API port.
+
+- name: Validate selected provider configuration
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/validate.yml
+

@@ -1,0 +1,14 @@
+---
+minio_config_dir: /var/lib/project-devops-minio/config
+minio_data_dir: /var/lib/project-devops-minio/data
+minio_app_policy_file: "{{ minio_config_dir }}/application-policy.json"
+
+rustfs_config_dir: /var/lib/project-devops-rustfs/config
+rustfs_data_dir: /var/lib/project-devops-rustfs/data
+rustfs_client_config_dir: /var/lib/project-devops-rustfs/client-config
+rustfs_app_policy_file: "{{ rustfs_config_dir }}/application-policy.json"
+rustfs_client_uid: "100"
+rustfs_client_gid: "101"
+rustfs_client_home: /home/rc
+rustfs_client_container_config_dir: "{{ rustfs_client_home }}/.config/rc"
+

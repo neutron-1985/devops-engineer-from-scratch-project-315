@@ -1,0 +1,46 @@
+---
+- name: Allow object storage access from configured clients
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ object_storage_api_port }}"
+    src: "{{ item }}"
+    comment: "{{ object_storage_host_firewall_comment }}"
+  loop: "{{ object_storage_host_allowed_cidrs }}"
+
+- name: Revoke object storage access from removed allowlist entries
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ object_storage_api_port }}"
+    src: "{{ item }}"
+    comment: "{{ object_storage_host_firewall_comment }}"
+    delete: true
+  loop: >-
+    {{ object_storage_host_previous_allowed_cidrs
+       | difference(object_storage_host_allowed_cidrs) }}
+
+- name: Create Ansible local facts directory for object storage
+  ansible.builtin.file:
+    path: "{{ object_storage_host_fact_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Save current object storage firewall state as a local fact
+  ansible.builtin.copy:
+    content: >-
+      {{ object_storage_host_allowed_cidrs | unique | sort | to_nice_json }}
+    dest: "{{ object_storage_host_fact_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Remove the legacy object storage firewall fact
+  ansible.builtin.file:
+    path: "{{ object_storage_host_legacy_fact_file }}"
+    state: absent
+

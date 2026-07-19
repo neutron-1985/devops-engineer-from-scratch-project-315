@@ -11,5 +11,4 @@ database_migration_url: >-
 database_migration_user: "{{ database_username }}"
 database_migration_password: "{{ database_password }}"
 
-database_migration_baseline_version: "1"
 database_migration_connect_retries: "10"

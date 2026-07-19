@@ -1,0 +1,29 @@
+---
+- name: Inspect application container before S3 transition
+  community.docker.docker_container_info:
+    name: "{{ object_storage_provider_switch_application_container_name }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_provider_switch_application_container
+  no_log: true
+
+- name: Stop application for final object storage transition
+  community.docker.docker_container:
+    name: "{{ object_storage_provider_switch_application_container_name }}"
+    state: stopped
+  delegate_to: "{{ groups['production'] | first }}"
+  when: object_storage_provider_switch_application_container.exists
+
+- name: Remove bulletins containing legacy local-storage images
+  community.postgresql.postgresql_query:
+    login_host: 127.0.0.1
+    login_port: "{{ database_port }}"
+    login_db: "{{ database_name }}"
+    login_user: "{{ database_username }}"
+    login_password: "{{ database_password }}"
+    query: TRUNCATE TABLE bulletins RESTART IDENTITY;
+  delegate_to: "{{ groups['database'] | first }}"
+  when:
+    - object_storage_provider_switch_initial_transition | bool
+    - object_storage_provider_switch_remove_legacy_bulletins | bool
+  no_log: true
+

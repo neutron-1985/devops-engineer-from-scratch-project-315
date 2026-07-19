@@ -1,0 +1,37 @@
+---
+- name: Pull RustFS image
+  community.docker.docker_image:
+    name: "{{ rustfs_image }}"
+    source: pull
+  when: object_storage_deploy_pull_image | bool
+
+- name: Run RustFS container
+  community.docker.docker_container:
+    name: "{{ rustfs_container_name }}"
+    image: "{{ rustfs_image }}"
+    state: started
+    detach: true
+    restart_policy: always
+    pull: missing
+    network_mode: host
+    command: /data
+    volumes:
+      - "{{ rustfs_data_dir }}:/data"
+    env:
+      RUSTFS_ACCESS_KEY: "{{ rustfs_access_key }}"
+      RUSTFS_SECRET_KEY: "{{ rustfs_secret_key }}"
+      RUSTFS_ADDRESS: ":{{ object_storage_deploy_api_port }}"
+      RUSTFS_CONSOLE_ENABLE: >-
+        {{ 'true' if object_storage_deploy_console_enabled | bool else 'false' }}
+  no_log: true
+
+- name: Wait until RustFS is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ object_storage_deploy_api_port }}/health"
+    status_code: 200
+  register: object_storage_deploy_healthcheck
+  retries: "{{ object_storage_healthcheck_retries }}"
+  delay: "{{ object_storage_healthcheck_delay }}"
+  until: object_storage_deploy_healthcheck.status == 200
+  when: not ansible_check_mode
+

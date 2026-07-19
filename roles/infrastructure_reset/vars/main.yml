@@ -7,9 +7,14 @@ infrastructure_reset_postgresql_root_dir: /var/lib/project-devops-postgresql
 infrastructure_reset_postgresql_fact_file: /etc/ansible/facts.d/postgresql_firewall.fact
 
 infrastructure_reset_object_storage_firewall_fact_files:
+  - /etc/ansible/facts.d/object_storage_firewall.fact
   - /etc/ansible/facts.d/object_storage_service_firewall.fact
   - /etc/ansible/facts.d/minio_firewall.fact
   - /etc/ansible/facts.d/rustfs_firewall.fact
+
+infrastructure_reset_object_storage_migration_container_names:
+  - project-devops-object-storage-migration
+  - project-devops-object-storage-migration-verify
 
 infrastructure_reset_minio_container_names:
   - project-devops-minio

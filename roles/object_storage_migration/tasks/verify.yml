@@ -1,0 +1,21 @@
+---
+- name: Verify target object storage bucket is accessible
+  community.docker.docker_container:
+    name: "{{ object_storage_migration_container_name }}-verify"
+    image: "{{ object_storage_migration_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - ls
+      - "target/{{ object_storage_migration_bucket }}"
+    env:
+      MC_HOST_target: >-
+        {{ 'http://' ~ object_storage_migration_access_key ~ ':' ~
+           object_storage_migration_secret_key ~ '@' ~
+           object_storage_migration_target_address }}
+  no_log: true
+  when: not ansible_check_mode
+

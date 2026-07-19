@@ -1,0 +1,6 @@
+---
+- name: Stop inactive RustFS container
+  community.docker.docker_container:
+    name: "{{ rustfs_container_name }}"
+    state: absent
+

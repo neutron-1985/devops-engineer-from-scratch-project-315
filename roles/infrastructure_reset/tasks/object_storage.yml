@@ -1,4 +1,12 @@
 ---
+- name: Remove object storage migration containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+    force_kill: true
+  loop: "{{ infrastructure_reset_object_storage_migration_container_names }}"
+  when: infrastructure_reset_docker_info.rc == 0
+
 - name: Remove MinIO containers
   community.docker.docker_container:
     name: "{{ item }}"

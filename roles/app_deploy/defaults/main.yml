@@ -4,8 +4,13 @@ app_image_tag: latest
 app_container_name: project-devops-deploy
 app_image: "{{ app_image_repository }}:{{ app_image_tag }}"
 
+# Runtime identity declared by the application image.
+app_container_uid: "100"
+app_container_gid: "101"
+
 # Published container ports.
 app_bind_address: 127.0.0.1
+app_management_bind_address: 127.0.0.1
 app_public_port: "8080"
 app_container_management_port: "9090"
 
@@ -28,12 +33,13 @@ app_common_environment:
   MANAGEMENT_SERVER_PORT: "{{ app_container_management_port }}"
   JAVA_OPTS: "{{ app_java_opts }}"
 
-# Database and object storage environment is enabled automatically for prod.
-app_production_external_services_environment:
+# External service environment is composed from profile and storage backend.
+app_database_environment:
   SPRING_DATASOURCE_URL: "{{ database_url }}"
   SPRING_DATASOURCE_USERNAME: "{{ database_username }}"
   SPRING_DATASOURCE_PASSWORD: "{{ database_password }}"
   SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+app_s3_environment:
   STORAGE_S3_BUCKET: "{{ app_s3_bucket }}"
   STORAGE_S3_REGION: "{{ app_s3_region }}"
   STORAGE_S3_ENDPOINT: "{{ app_s3_endpoint }}"
@@ -41,7 +47,8 @@ app_production_external_services_environment:
   STORAGE_S3_SECRETKEY: "{{ app_s3_secret_key }}"
   STORAGE_S3_CDNURL: "{{ app_s3_cdn_url }}"
 app_external_services_environment: >-
-  {{ app_production_external_services_environment if app_profile == 'prod' else {} }}
+  {{ (app_database_environment if app_profile == 'prod' else {})
+     | combine(app_s3_environment if app_storage_backend == 's3' else {}) }}
 
 # Persistent host paths. Uploaded images are mounted into the path used by LocalImageStorageService.
 app_data_dir: /var/lib/project-devops-deploy

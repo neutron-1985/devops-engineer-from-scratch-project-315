@@ -40,8 +40,6 @@
           FLYWAY_URL: "{{ database_migration_url }}"
           FLYWAY_USER: "{{ database_migration_user }}"
           FLYWAY_PASSWORD: "{{ database_migration_password }}"
-          FLYWAY_BASELINE_ON_MIGRATE: "true"
-          FLYWAY_BASELINE_VERSION: "{{ database_migration_baseline_version }}"
           FLYWAY_CONNECT_RETRIES: "{{ database_migration_connect_retries }}"
           FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
           REDGATE_DISABLE_TELEMETRY: "true"

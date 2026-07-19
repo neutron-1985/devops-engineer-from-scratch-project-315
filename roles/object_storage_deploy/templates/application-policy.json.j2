@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::{{ object_storage_bucket }}/{{ object_storage_object_prefix }}/*"
+      ]
+    }
+  ]
+}
+

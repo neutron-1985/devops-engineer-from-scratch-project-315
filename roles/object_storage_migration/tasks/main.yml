@@ -1,0 +1,10 @@
+---
+- name: Validate object storage migration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Copy object storage data
+  ansible.builtin.import_tasks: copy.yml
+
+- name: Verify migrated object storage bucket
+  ansible.builtin.import_tasks: verify.yml
+

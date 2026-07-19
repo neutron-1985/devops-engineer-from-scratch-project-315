@@ -2,6 +2,10 @@
 # Inventory identity shared by every infrastructure role.
 vault_inventory: "{{ project_vault.inventory }}"
 
+# Application network contract shared by app_deploy, firewall, and Nginx.
+app_public_port: "8080"
+app_container_management_port: "9090"
+
 # Database connection shared by database_service, database_migrations, and app_deploy.
 database_host: "{{ hostvars[groups['database'] | first].ansible_host }}"
 database_port: "5432"
@@ -11,7 +15,7 @@ database_password: "{{ project_vault.database.postgresql_password }}"
 database_url: >-
   jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
 
-# S3 contract shared by object_storage_service, app_deploy, and storage_smoke_test.
+# S3 contract shared by object storage roles, app_deploy, and storage_smoke_test.
 object_storage_api_port: "9000"
 object_storage_endpoint: >-
   http://{{ hostvars[groups['object_storage'] | first].ansible_host }}:{{ object_storage_api_port }}
@@ -26,7 +30,7 @@ object_storage_admin_secret_key: "{{ project_vault.object_storage.admin_secret_k
 
 # Reverse-proxy contract shared by the HTTP and HTTPS Nginx roles.
 nginx_server_name: n-devops.jumpingcrab.com
-nginx_app_upstream: http://127.0.0.1:8080
+nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
 nginx_uploads_enabled: true
 nginx_uploads_upstream: "{{ object_storage_endpoint }}"
 nginx_uploads_bucket: "{{ object_storage_bucket }}"

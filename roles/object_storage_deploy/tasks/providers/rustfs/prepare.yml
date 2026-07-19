@@ -1,0 +1,69 @@
+---
+- name: Create RustFS data directory
+  ansible.builtin.file:
+    path: "{{ rustfs_data_dir }}"
+    state: directory
+    owner: "{{ rustfs_container_uid }}"
+    group: "{{ rustfs_container_uid }}"
+    mode: "0750"
+
+- name: Create RustFS client configuration directory
+  ansible.builtin.file:
+    path: "{{ rustfs_client_config_dir }}"
+    state: directory
+    owner: "{{ rustfs_client_uid }}"
+    group: "{{ rustfs_client_gid }}"
+    mode: "0700"
+
+- name: Find existing RustFS client configuration directories
+  ansible.builtin.find:
+    paths: "{{ rustfs_client_config_dir }}"
+    recurse: true
+    hidden: true
+    file_type: directory
+  register: rustfs_client_config_directories
+
+- name: Preserve RustFS client directory ownership and permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ rustfs_client_uid }}"
+    group: "{{ rustfs_client_gid }}"
+    mode: "0700"
+  loop: "{{ rustfs_client_config_directories.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Find existing RustFS client configuration files
+  ansible.builtin.find:
+    paths: "{{ rustfs_client_config_dir }}"
+    recurse: true
+    hidden: true
+    file_type: file
+  register: rustfs_client_config_files
+
+- name: Preserve RustFS client file ownership and permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ rustfs_client_uid }}"
+    group: "{{ rustfs_client_gid }}"
+    mode: "0600"
+  loop: "{{ rustfs_client_config_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Create RustFS configuration directory
+  ansible.builtin.file:
+    path: "{{ rustfs_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Render least-privilege RustFS application policy
+  ansible.builtin.template:
+    src: application-policy.json.j2
+    dest: "{{ rustfs_app_policy_file }}"
+    owner: "{{ rustfs_client_uid }}"
+    group: "{{ rustfs_client_gid }}"
+    mode: "0600"
+

@@ -22,7 +22,6 @@
     app_profile: dev
     app_storage_backend: local
     app_bind_address: 0.0.0.0
-    app_external_services_environment: {}
 
   roles:
     - role: app_deploy
