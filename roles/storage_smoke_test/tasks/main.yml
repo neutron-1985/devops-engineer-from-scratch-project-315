@@ -68,13 +68,13 @@
           - host
           - --env
           - MC_HOST_app
-          - "{{ storage_smoke_minio_client_image }}"
+          - "{{ storage_smoke_s3_client_image }}"
           - rm
           - --force
           - "app/{{ object_storage_bucket }}/{{ storage_smoke_upload.json.key }}"
       environment:
         MC_HOST_app: >-
-          http://{{ object_storage_access_key }}:{{ object_storage_secret_key }}@127.0.0.1:{{ storage_smoke_minio_api_port }}
+          http://{{ object_storage_access_key }}:{{ object_storage_secret_key }}@127.0.0.1:{{ storage_smoke_s3_api_port }}
       delegate_to: "{{ storage_smoke_object_storage_host }}"
       remote_user: "{{ storage_smoke_object_storage_user }}"
       become: true
@@ -84,7 +84,7 @@
       no_log: true
 
   always:
-    - name: Remove smoke-test object with MinIO administrative credentials
+    - name: Remove smoke-test object with object storage administrative credentials
       ansible.builtin.command:
         argv:
           - docker
@@ -94,13 +94,13 @@
           - host
           - --env
           - MC_HOST_local
-          - "{{ storage_smoke_minio_client_image }}"
+          - "{{ storage_smoke_s3_client_image }}"
           - rm
           - --force
           - "local/{{ object_storage_bucket }}/{{ storage_smoke_upload.json.key }}"
       environment:
         MC_HOST_local: >-
-          http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ storage_smoke_minio_api_port }}
+          http://{{ object_storage_admin_access_key }}:{{ object_storage_admin_secret_key }}@127.0.0.1:{{ storage_smoke_s3_api_port }}
       delegate_to: "{{ storage_smoke_object_storage_host }}"
       remote_user: "{{ storage_smoke_object_storage_user }}"
       become: true

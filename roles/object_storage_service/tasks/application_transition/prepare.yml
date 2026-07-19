@@ -1,0 +1,58 @@
+---
+- name: Check the active object storage provider marker
+  ansible.builtin.stat:
+    path: "{{ object_storage_service_provider_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_service_provider_marker_state
+
+- name: Read the active object storage provider marker
+  ansible.builtin.slurp:
+    src: "{{ object_storage_service_provider_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_service_provider_marker_content
+  when: object_storage_service_provider_marker_state.stat.exists
+
+- name: Check whether the initial S3 transition has completed
+  ansible.builtin.stat:
+    path: "{{ object_storage_service_transition_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_service_transition_marker_state
+
+- name: Read the initial S3 transition marker
+  ansible.builtin.slurp:
+    src: "{{ object_storage_service_transition_marker }}"
+  delegate_to: "{{ groups['production'] | first }}"
+  register: object_storage_service_transition_marker_content
+  when: object_storage_service_transition_marker_state.stat.exists
+
+- name: Determine the previous object storage provider
+  ansible.builtin.set_fact:
+    object_storage_service_previous_provider: >-
+      {{ object_storage_service_provider_marker_content.content
+         | default('')
+         | b64decode
+         | trim }}
+
+- name: Determine whether this is the initial S3 transition
+  ansible.builtin.set_fact:
+    object_storage_service_initial_transition: >-
+      {{ (object_storage_service_transition_marker_content.content
+          | default('')
+          | b64decode
+          | trim) != 'complete' }}
+
+- name: Validate the recorded object storage transition state
+  ansible.builtin.assert:
+    that:
+      - >-
+        object_storage_service_initial_transition | bool or
+        object_storage_service_previous_provider in ['minio', 'rustfs']
+    fail_msg: >-
+      The initial S3 transition is marked complete, but the active provider
+      marker is missing or invalid. Refusing to switch without a known source.
+
+- name: Determine whether an object storage transition is required
+  ansible.builtin.set_fact:
+    object_storage_service_transition_required: >-
+      {{ object_storage_service_initial_transition | bool or
+         object_storage_service_previous_provider != object_storage_service_provider }}

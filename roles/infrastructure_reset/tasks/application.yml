@@ -13,11 +13,3 @@
   loop:
     - "{{ infrastructure_reset_app_data_dir }}"
     - "{{ infrastructure_reset_app_log_dir }}"
-
-- name: Remove deployment users and their home directories
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    state: absent
-    remove: true
-    force: true
-  loop: "{{ server_provision_users | default([{'name': deploy_user}]) }}"

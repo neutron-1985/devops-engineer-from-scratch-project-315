@@ -12,7 +12,7 @@
     pull: missing
     network_mode: host
     volumes:
-      - "{{ postgresql_volume_name }}:/var/lib/postgresql/data"
+      - "{{ postgresql_data_dir }}:/var/lib/postgresql/data"
     env:
       POSTGRES_DB: "{{ postgresql_database }}"
       POSTGRES_USER: "{{ postgresql_user }}"

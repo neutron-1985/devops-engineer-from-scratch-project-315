@@ -1,0 +1,12 @@
+---
+- name: Copy object storage changes made during the initial migration
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/migration/mirror.yml"
+
+- name: Switch the migrated provider to the primary S3 port
+  ansible.builtin.include_tasks: >-
+    {{ role_path }}/tasks/{{ object_storage_service_provider }}/service.yml
+  vars:
+    object_storage_service_remove_inactive: true
+    object_storage_service_console_enabled: true
+    object_storage_service_pull_image: false
+    object_storage_service_configure_resources: false

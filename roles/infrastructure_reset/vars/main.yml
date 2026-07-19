@@ -1,0 +1,58 @@
+---
+infrastructure_reset_app_container_name: project-devops-deploy
+infrastructure_reset_app_data_dir: /var/lib/project-devops-deploy
+infrastructure_reset_app_log_dir: /var/log/project-devops-deploy
+infrastructure_reset_postgresql_container_name: project-devops-postgresql
+infrastructure_reset_postgresql_root_dir: /var/lib/project-devops-postgresql
+infrastructure_reset_postgresql_fact_file: /etc/ansible/facts.d/postgresql_firewall.fact
+
+infrastructure_reset_object_storage_firewall_fact_files:
+  - /etc/ansible/facts.d/object_storage_service_firewall.fact
+  - /etc/ansible/facts.d/minio_firewall.fact
+  - /etc/ansible/facts.d/rustfs_firewall.fact
+
+infrastructure_reset_minio_container_names:
+  - project-devops-minio
+  - project-devops-minio-create-bucket
+  - project-devops-minio-configure-public-downloads
+  - project-devops-minio-configure-user
+  - project-devops-minio-configure-policy
+  - project-devops-minio-attach-policy
+infrastructure_reset_legacy_minio_volume_name: project-devops-minio-data
+infrastructure_reset_minio_root_dir: /var/lib/project-devops-minio
+
+infrastructure_reset_rustfs_container_names:
+  - project-devops-rustfs
+  - project-devops-rustfs-configure-client
+  - project-devops-rustfs-create-bucket
+  - project-devops-rustfs-configure-public-downloads
+  - project-devops-rustfs-configure-user
+  - project-devops-rustfs-configure-policy
+  - project-devops-rustfs-attach-policy
+infrastructure_reset_legacy_rustfs_volume_names:
+  - project-devops-rustfs-data
+  - project-devops-rustfs-client-config
+infrastructure_reset_rustfs_root_dir: /var/lib/project-devops-rustfs
+
+infrastructure_reset_docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - docker-ce-rootless-extras
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+infrastructure_reset_docker_paths:
+  - /etc/docker
+  - /var/lib/docker
+  - /var/lib/containerd
+  - /etc/apt/sources.list.d/docker.sources
+  - /etc/apt/sources.list.d/docker.list
+  - /etc/apt/keyrings/docker.asc
+  - /etc/apt/trusted.gpg.d/docker.asc
+
+infrastructure_reset_nginx_packages:
+  - nginx
+  - nginx-common
+  - certbot
+infrastructure_reset_nginx_cache_dir: /var/cache/nginx

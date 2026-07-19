@@ -1,0 +1,16 @@
+---
+- name: Validate RustFS configuration
+  ansible.builtin.assert:
+    that:
+      - rustfs_access_key | default('') | length >= 3
+      - rustfs_secret_key | default('') | length >= 16
+      - rustfs_app_access_key | default('') | length >= 3
+      - rustfs_app_secret_key | default('') | length >= 16
+      - (rustfs_app_access_key | default('')) != (rustfs_access_key | default(''))
+      - (rustfs_app_secret_key | default('')) != (rustfs_secret_key | default(''))
+      - rustfs_app_object_prefix | default('') | length > 0
+      - rustfs_app_policy_name | default('') | length > 0
+    fail_msg: >-
+      RustFS requires distinct root/application credentials, an application
+      policy.
+  no_log: true

@@ -3,6 +3,7 @@
   community.docker.docker_container_info:
     name: "{{ app_container_name }}"
   register: app_existing_container
+  no_log: true
 
 - name: Remember current application image for rollback
   ansible.builtin.set_fact:
@@ -23,8 +24,7 @@
         image: "{{ app_image }}"
         state: started
         restart_policy: always
-        recreate: true
-        pull: always
+        pull: missing
         ports:
           - "{{ app_bind_address }}:{{ app_public_port }}:8080"
           - "{{ app_bind_address }}:{{ app_container_management_port }}:9090"

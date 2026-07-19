@@ -1,4 +1,14 @@
 ---
+- name: Allow PostgreSQL access from configured clients
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ postgresql_port }}"
+    src: "{{ item }}"
+    comment: "{{ postgresql_firewall_comment }}"
+  loop: "{{ postgresql_allowed_cidrs }}"
+
 - name: Revoke PostgreSQL access from removed allowlist entries
   community.general.ufw:
     rule: allow
@@ -10,16 +20,6 @@
     delete: true
   loop: "{{ postgresql_previous_allowed_cidrs | difference(postgresql_allowed_cidrs) }}"
 
-- name: Allow PostgreSQL access from configured clients
-  community.general.ufw:
-    rule: allow
-    direction: in
-    proto: tcp
-    port: "{{ postgresql_port }}"
-    src: "{{ item }}"
-    comment: "{{ postgresql_firewall_comment }}"
-  loop: "{{ postgresql_allowed_cidrs }}"
-  
 - name: Create Ansible local facts directory
   ansible.builtin.file:
     path: "{{ postgresql_fact_dir }}"

@@ -27,6 +27,14 @@
     path: /etc/ufw
     state: absent
 
+- name: Remove deployment users and their home directories
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: absent
+    remove: true
+    force: true
+  loop: "{{ deployment_access_users | default([{'name': vault_inventory.deploy_user}]) }}"
+
 - name: Remove Docker group
   ansible.builtin.group:
     name: docker

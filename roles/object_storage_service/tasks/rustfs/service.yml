@@ -1,0 +1,124 @@
+---
+- name: Pull RustFS image before stopping inactive storage
+  community.docker.docker_image:
+    name: "{{ rustfs_image }}"
+    source: pull
+  when: object_storage_service_pull_image | bool
+
+- name: Stop inactive MinIO container
+  community.docker.docker_container:
+    name: "{{ minio_container_name }}"
+    state: absent
+  when: object_storage_service_remove_inactive | bool
+
+- name: Run RustFS container
+  community.docker.docker_container:
+    name: "{{ rustfs_container_name }}"
+    image: "{{ rustfs_image }}"
+    state: started
+    detach: true
+    restart_policy: always
+    network_mode: host
+    command: /data
+    volumes:
+      - "{{ rustfs_data_dir }}:/data"
+    env:
+      RUSTFS_ACCESS_KEY: "{{ rustfs_access_key }}"
+      RUSTFS_SECRET_KEY: "{{ rustfs_secret_key }}"
+      RUSTFS_ADDRESS: ":{{ rustfs_api_port }}"
+      RUSTFS_CONSOLE_ENABLE: >-
+        {{ 'true' if object_storage_service_console_enabled | bool else 'false' }}
+  no_log: true
+
+- name: Wait until RustFS is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ rustfs_api_port }}/health"
+    status_code: 200
+  register: rustfs_healthcheck
+  retries: "{{ object_storage_service_healthcheck_retries }}"
+  delay: "{{ object_storage_service_healthcheck_delay }}"
+  until: rustfs_healthcheck.status == 200
+  when: not ansible_check_mode
+
+- name: Configure RustFS resources
+  module_defaults:
+    community.docker.docker_container:
+      image: "{{ rustfs_client_image }}"
+      detach: false
+      cleanup: true
+      network_mode: host
+      env:
+        HOME: "{{ rustfs_client_home }}"
+      volumes:
+        - "{{ rustfs_client_config_dir }}:{{ rustfs_client_container_config_dir }}"
+  when:
+    - not ansible_check_mode
+    - object_storage_service_configure_resources | bool
+  block:
+    - name: Configure RustFS client alias
+      community.docker.docker_container:
+        name: project-devops-rustfs-configure-client
+        command:
+          - alias
+          - set
+          - local
+          - "http://127.0.0.1:{{ rustfs_api_port }}"
+          - "{{ rustfs_access_key }}"
+          - "{{ rustfs_secret_key }}"
+      no_log: true
+
+    - name: Create RustFS bucket
+      community.docker.docker_container:
+        name: project-devops-rustfs-create-bucket
+        command:
+          - bucket
+          - create
+          - --ignore-existing
+          - "local/{{ rustfs_bucket }}"
+
+    - name: Configure public read access for RustFS bulletin images
+      community.docker.docker_container:
+        name: project-devops-rustfs-configure-public-downloads
+        command:
+          - anonymous
+          - set
+          - "{{ 'public' if rustfs_public_downloads | bool else 'private' }}"
+          - "local/{{ rustfs_bucket }}/{{ rustfs_app_object_prefix }}"
+
+    - name: Create or update RustFS application user
+      community.docker.docker_container:
+        name: project-devops-rustfs-configure-user
+        command:
+          - admin
+          - user
+          - add
+          - local
+          - "{{ rustfs_app_access_key }}"
+          - "{{ rustfs_app_secret_key }}"
+      no_log: true
+
+    - name: Create or update RustFS application policy
+      community.docker.docker_container:
+        name: project-devops-rustfs-configure-policy
+        command:
+          - admin
+          - policy
+          - create
+          - local
+          - "{{ rustfs_app_policy_name }}"
+          - /config/application-policy.json
+        volumes:
+          - "{{ rustfs_client_config_dir }}:{{ rustfs_client_container_config_dir }}"
+          - "{{ rustfs_app_policy_file }}:/config/application-policy.json:ro"
+
+    - name: Attach application policy to RustFS application user
+      community.docker.docker_container:
+        name: project-devops-rustfs-attach-policy
+        command:
+          - admin
+          - policy
+          - attach
+          - local
+          - "{{ rustfs_app_policy_name }}"
+          - --user
+          - "{{ rustfs_app_access_key }}"

@@ -1,0 +1,8 @@
+---
+- name: Pull application image before replacing running container
+  community.docker.docker_image:
+    name: "{{ app_image }}"
+    source: pull
+    force_source: true
+  when: not app_deploy_image_preloaded | default(false) | bool
+  no_log: true

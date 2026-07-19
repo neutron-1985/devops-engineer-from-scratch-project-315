@@ -1,0 +1,24 @@
+---
+- name: Create MinIO data directory
+  ansible.builtin.file:
+    path: "{{ minio_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Create MinIO configuration directory
+  ansible.builtin.file:
+    path: "{{ minio_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Render least-privilege application policy
+  ansible.builtin.template:
+    src: application-policy.json.j2
+    dest: "{{ minio_app_policy_file }}"
+    owner: root
+    group: root
+    mode: "0600"

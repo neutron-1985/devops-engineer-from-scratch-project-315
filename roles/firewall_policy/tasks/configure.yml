@@ -8,6 +8,15 @@
     comment: "{{ firewall_policy_base_comment }}-ssh"
   when: firewall_policy_manage_base | bool
 
+- name: Allow current public TCP ports
+  community.general.ufw:
+    rule: allow
+    direction: in
+    port: "{{ item }}"
+    proto: tcp
+    comment: "{{ firewall_policy_application_comment }}"
+  loop: "{{ firewall_policy_allowed_tcp_ports }}"
+
 - name: Set default incoming policy to deny
   community.general.ufw:
     direction: incoming
@@ -29,15 +38,6 @@
     comment: "{{ firewall_policy_application_comment }}"
     delete: true
   loop: "{{ firewall_policy_revoked_tcp_ports }}"
-
-- name: Allow current public TCP ports
-  community.general.ufw:
-    rule: allow
-    direction: in
-    port: "{{ item }}"
-    proto: tcp
-    comment: "{{ firewall_policy_application_comment }}"
-  loop: "{{ firewall_policy_allowed_tcp_ports }}"
 
 - name: Enable UFW
   community.general.ufw:
