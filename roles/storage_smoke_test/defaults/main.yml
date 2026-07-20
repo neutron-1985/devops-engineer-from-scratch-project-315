@@ -1,8 +1,0 @@
----
-storage_smoke_app_url: http://127.0.0.1
-storage_smoke_content: project-devops-s3-smoke-test
-storage_smoke_filename: storage-smoke.txt
-storage_smoke_object_storage_host: "{{ groups['object_storage'] | first }}"
-storage_smoke_object_storage_user: "{{ vault_inventory.provision_user }}"
-storage_smoke_s3_client_image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-storage_smoke_s3_api_port: "9000"

@@ -1,11 +1,4 @@
 ---
-- name: Pull MinIO image
-  community.docker.docker_image:
-    name: "{{ minio_image }}"
-    source: pull
-    force_source: false
-  when: object_storage_deploy_pull_image | bool
-
 - name: Run MinIO container
   community.docker.docker_container:
     name: "{{ minio_container_name }}"
@@ -20,10 +13,10 @@
     volumes:
       - "{{ minio_data_dir }}:/data"
     env:
-      MINIO_ROOT_USER: "{{ minio_root_user }}"
-      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_ROOT_USER: "{{ object_storage_admin_access_key }}"
+      MINIO_ROOT_PASSWORD: "{{ object_storage_admin_secret_key }}"
       MINIO_ADDRESS: ":{{ object_storage_deploy_api_port }}"
-      MINIO_CONSOLE_ADDRESS: ":9001"
+      MINIO_CONSOLE_ADDRESS: ":{{ object_storage_console_port }}"
       MINIO_BROWSER: >-
         {{ 'on' if object_storage_deploy_console_enabled | bool else 'off' }}
   no_log: true

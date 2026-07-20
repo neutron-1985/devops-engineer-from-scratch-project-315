@@ -5,3 +5,6 @@
 - name: Deploy selected object storage provider
   ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/deploy.yml
 
+- name: Provision selected object storage provider
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/provision.yml
+

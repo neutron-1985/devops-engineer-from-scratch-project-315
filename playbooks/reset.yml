@@ -1,0 +1,9 @@
+---
+- name: Reset infrastructure hosts
+  hosts: infrastructure
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags: reset
+
+  roles:
+    - role: infrastructure_reset

@@ -1,0 +1,34 @@
+---
+- name: Migrate production database
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  tags: deploy
+
+  roles:
+    - role: database_migrations
+
+- name: Deploy application
+  hosts: application
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags: deploy
+
+  vars:
+    app_profile: "{{ 'prod' if 'production' in group_names else 'dev' }}"
+    app_storage_backend: "{{ 's3' if 'production' in group_names else 'local' }}"
+
+  roles:
+    - role: app_deploy
+
+- name: Verify production deployment
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+
+  roles:
+    - role: object_storage_smoke_test

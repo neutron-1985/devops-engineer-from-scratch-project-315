@@ -43,13 +43,10 @@
     app_profile: prod
     app_storage_backend: s3
     app_bind_address: 0.0.0.0
-    # Nginx is introduced only in step 5, so links use the S3 endpoint here.
-    app_s3_cdn_url: ""
 
   roles:
     - role: app_deploy
-    - role: storage_smoke_test
-      storage_smoke_app_url: "http://127.0.0.1:{{ app_public_port }}"
+    - role: object_storage_smoke_test
 
   post_tasks:
     - name: Complete the application S3 transition

@@ -1,0 +1,19 @@
+---
+- name: Remove smoke-test object with object storage administrative credentials
+  ansible.builtin.command:
+    cmd: >-
+      docker run --rm --network host --env MC_HOST_local
+      {{ object_storage_client_image }}
+      rm --force
+      local/{{ object_storage_bucket }}/{{ object_storage_smoke_upload.json.key }}
+  environment:
+    MC_HOST_local: >-
+      http://{{ object_storage_admin_access_key }}:{{ object_storage_admin_secret_key }}@127.0.0.1:{{ object_storage_smoke_api_port }}
+  delegate_to: "{{ object_storage_smoke_host }}"
+  remote_user: "{{ object_storage_smoke_user }}"
+  become: false
+  no_log: true
+  when:
+    - object_storage_smoke_upload is defined
+    - object_storage_smoke_upload.json is defined
+    - object_storage_smoke_upload.json.key is defined

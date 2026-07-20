@@ -1,7 +1,7 @@
 ---
 - name: Remove application container
   community.docker.docker_container:
-    name: "{{ infrastructure_reset_app_container_name }}"
+    name: "{{ app_container_name }}"
     state: absent
     force_kill: true
   when: infrastructure_reset_docker_info.rc == 0
@@ -11,5 +11,5 @@
     path: "{{ item }}"
     state: absent
   loop:
-    - "{{ infrastructure_reset_app_data_dir }}"
+    - "{{ app_data_dir }}"
     - "{{ infrastructure_reset_app_log_dir }}"

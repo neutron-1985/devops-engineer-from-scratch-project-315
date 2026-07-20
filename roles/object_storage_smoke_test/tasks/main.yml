@@ -1,0 +1,13 @@
+---
+- name: Exercise application object storage integration
+  when: not ansible_check_mode
+  block:
+    - name: Verify application upload and download flow
+      ansible.builtin.include_tasks: application_flow.yml
+
+    - name: Verify application object storage permissions
+      ansible.builtin.include_tasks: access_policy.yml
+
+  always:
+    - name: Clean up smoke-test object
+      ansible.builtin.include_tasks: cleanup.yml

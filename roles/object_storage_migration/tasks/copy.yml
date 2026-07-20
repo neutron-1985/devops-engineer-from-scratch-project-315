@@ -2,7 +2,7 @@
 - name: Mirror object storage data to the target provider
   community.docker.docker_container:
     name: "{{ object_storage_migration_container_name }}"
-    image: "{{ object_storage_migration_client_image }}"
+    image: "{{ object_storage_client_image }}"
     state: started
     detach: false
     cleanup: true

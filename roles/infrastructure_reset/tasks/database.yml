@@ -1,17 +1,17 @@
 ---
 - name: Remove PostgreSQL container
   community.docker.docker_container:
-    name: "{{ infrastructure_reset_postgresql_container_name }}"
+    name: "{{ postgresql_container_name }}"
     state: absent
     force_kill: true
   when: infrastructure_reset_docker_info.rc == 0
 
 - name: Remove PostgreSQL data
   ansible.builtin.file:
-    path: "{{ infrastructure_reset_postgresql_root_dir }}"
+    path: "{{ postgresql_root_dir }}"
     state: absent
 
 - name: Remove PostgreSQL firewall local fact
   ansible.builtin.file:
-    path: "{{ infrastructure_reset_postgresql_fact_file }}"
+    path: "{{ postgresql_fact_file }}"
     state: absent

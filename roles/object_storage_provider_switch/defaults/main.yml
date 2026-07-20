@@ -1,8 +1,6 @@
 ---
-object_storage_provider: rustfs
 object_storage_provider_switch_migration_port: "9100"
 object_storage_provider_switch_state_file: >-
-  /var/lib/project-devops-deploy/.object-storage-state.json
-object_storage_provider_switch_application_container_name: project-devops-deploy
+  {{ app_data_dir }}/.object-storage-state.json
 object_storage_provider_switch_remove_legacy_bulletins: true
 

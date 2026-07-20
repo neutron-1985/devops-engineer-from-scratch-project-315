@@ -16,55 +16,55 @@
   block:
     - name: Configure RustFS client alias
       community.docker.docker_container:
-        name: project-devops-rustfs-configure-client
+        name: "{{ rustfs_container_name }}-configure-client"
         command:
           - alias
           - set
           - local
           - "http://127.0.0.1:{{ object_storage_deploy_api_port }}"
-          - "{{ rustfs_access_key }}"
-          - "{{ rustfs_secret_key }}"
+          - "{{ object_storage_admin_access_key }}"
+          - "{{ object_storage_admin_secret_key }}"
       no_log: true
 
     - name: Create RustFS bucket
       community.docker.docker_container:
-        name: project-devops-rustfs-create-bucket
+        name: "{{ rustfs_container_name }}-create-bucket"
         command:
           - bucket
           - create
           - --ignore-existing
-          - "local/{{ rustfs_bucket }}"
+          - "local/{{ object_storage_bucket }}"
 
     - name: Configure public read access for RustFS bulletin images
       community.docker.docker_container:
-        name: project-devops-rustfs-configure-public-downloads
+        name: "{{ rustfs_container_name }}-configure-public-downloads"
         command:
           - anonymous
           - set
-          - "{{ 'public' if rustfs_public_downloads | bool else 'private' }}"
-          - "local/{{ rustfs_bucket }}/{{ rustfs_app_object_prefix }}"
+          - "{{ 'public' if object_storage_public_downloads | bool else 'private' }}"
+          - "local/{{ object_storage_bucket }}/{{ object_storage_object_prefix }}"
 
     - name: Create or update RustFS application user
       community.docker.docker_container:
-        name: project-devops-rustfs-configure-user
+        name: "{{ rustfs_container_name }}-configure-user"
         command:
           - admin
           - user
           - add
           - local
-          - "{{ rustfs_app_access_key }}"
-          - "{{ rustfs_app_secret_key }}"
+          - "{{ object_storage_access_key }}"
+          - "{{ object_storage_secret_key }}"
       no_log: true
 
     - name: Create or update RustFS application policy
       community.docker.docker_container:
-        name: project-devops-rustfs-configure-policy
+        name: "{{ rustfs_container_name }}-configure-policy"
         command:
           - admin
           - policy
           - create
           - local
-          - "{{ rustfs_app_policy_name }}"
+          - "{{ object_storage_policy_name }}"
           - /config/application-policy.json
         volumes:
           - "{{ rustfs_client_config_dir }}:{{ rustfs_client_container_config_dir }}"
@@ -72,13 +72,13 @@
 
     - name: Attach application policy to RustFS application user
       community.docker.docker_container:
-        name: project-devops-rustfs-attach-policy
+        name: "{{ rustfs_container_name }}-attach-policy"
         command:
           - admin
           - policy
           - attach
           - local
-          - "{{ rustfs_app_policy_name }}"
+          - "{{ object_storage_policy_name }}"
           - --user
-          - "{{ rustfs_app_access_key }}"
+          - "{{ object_storage_access_key }}"
 

@@ -4,17 +4,33 @@
     rule: allow
     direction: in
     proto: tcp
-    port: "{{ object_storage_api_port }}"
+    port: "{{ object_storage_api_port }}:{{ object_storage_console_port }}"
     src: "{{ item }}"
     comment: "{{ object_storage_host_firewall_comment }}"
   loop: "{{ object_storage_host_allowed_cidrs }}"
+
+- name: Ensure obsolete API-only object storage rules are absent
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ object_storage_api_port }}"
+    src: "{{ item }}"
+    comment: "{{ object_storage_host_firewall_comment }}"
+    delete: true
+  loop: >-
+    {{
+      object_storage_host_previous_allowed_cidrs
+      | union(object_storage_host_allowed_cidrs)
+      | unique
+    }}
 
 - name: Revoke object storage access from removed allowlist entries
   community.general.ufw:
     rule: allow
     direction: in
     proto: tcp
-    port: "{{ object_storage_api_port }}"
+    port: "{{ object_storage_api_port }}:{{ object_storage_console_port }}"
     src: "{{ item }}"
     comment: "{{ object_storage_host_firewall_comment }}"
     delete: true
@@ -38,9 +54,4 @@
     owner: root
     group: root
     mode: "0644"
-
-- name: Remove the legacy object storage firewall fact
-  ansible.builtin.file:
-    path: "{{ object_storage_host_legacy_fact_file }}"
-    state: absent
 

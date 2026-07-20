@@ -5,7 +5,19 @@
       - object_storage_provider | default('') in ['minio', 'rustfs']
       - object_storage_deploy_api_port | int > 0
       - object_storage_deploy_api_port | int <= 65535
-    fail_msg: Select minio or rustfs and configure a valid API port.
+      - object_storage_console_port | int > 0
+      - object_storage_console_port | int <= 65535
+      - (object_storage_console_port | int) != (object_storage_deploy_api_port | int)
+      - object_storage_admin_access_key | default('') | length >= 3
+      - object_storage_admin_secret_key | default('') | length >= 16
+      - object_storage_access_key | default('') | length >= 3
+      - object_storage_secret_key | default('') | length >= 16
+      - (object_storage_access_key | default('')) != (object_storage_admin_access_key | default(''))
+      - (object_storage_secret_key | default('')) != (object_storage_admin_secret_key | default(''))
+      - object_storage_object_prefix | default('') | length > 0
+      - object_storage_policy_name | default('') | length > 0
+    fail_msg: Configure a supported provider, valid port, distinct credentials and application policy.
+  no_log: true
 
 - name: Validate selected provider configuration
   ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/validate.yml

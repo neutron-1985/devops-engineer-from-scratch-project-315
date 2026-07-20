@@ -14,6 +14,6 @@
       firewall_policy_allowed_tcp_ports:
         - "{{ app_public_port }}"
       firewall_policy_revoked_tcp_ports:
-        - "80"
-        - "443"
+        - "{{ nginx_http_port }}"
+        - "{{ nginx_https_port }}"
         - "{{ app_container_management_port }}"

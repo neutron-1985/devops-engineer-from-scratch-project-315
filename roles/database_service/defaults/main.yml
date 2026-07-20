@@ -1,6 +1,5 @@
 ---
 postgresql_image: postgres:17-alpine
-postgresql_container_name: project-devops-postgresql
 postgresql_python_driver_package: python3-psycopg2
 postgresql_database: "{{ database_name }}"
 postgresql_user: "{{ database_username }}"

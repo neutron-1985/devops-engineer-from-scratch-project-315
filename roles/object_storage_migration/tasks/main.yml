@@ -5,6 +5,6 @@
 - name: Copy object storage data
   ansible.builtin.import_tasks: copy.yml
 
-- name: Verify migrated object storage bucket
+- name: Verify copied object storage data
   ansible.builtin.import_tasks: verify.yml
 

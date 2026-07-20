@@ -1,7 +1,7 @@
 ---
 database_migration_image: flyway/flyway:12.11.0
 database_migration_container_name: project-devops-deploy-migration
-database_migration_dir: /var/lib/project-devops-deploy/migrations
+database_migration_dir: "{{ app_data_dir }}/migrations"
 
 database_migration_host: "{{ database_host }}"
 database_migration_port: "{{ database_port }}"

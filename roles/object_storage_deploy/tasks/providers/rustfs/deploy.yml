@@ -1,10 +1,4 @@
 ---
-- name: Pull RustFS image
-  community.docker.docker_image:
-    name: "{{ rustfs_image }}"
-    source: pull
-  when: object_storage_deploy_pull_image | bool
-
 - name: Run RustFS container
   community.docker.docker_container:
     name: "{{ rustfs_container_name }}"
@@ -19,11 +13,12 @@
     volumes:
       - "{{ rustfs_data_dir }}:/data"
     env:
-      RUSTFS_ACCESS_KEY: "{{ rustfs_access_key }}"
-      RUSTFS_SECRET_KEY: "{{ rustfs_secret_key }}"
+      RUSTFS_ACCESS_KEY: "{{ object_storage_admin_access_key }}"
+      RUSTFS_SECRET_KEY: "{{ object_storage_admin_secret_key }}"
       RUSTFS_ADDRESS: ":{{ object_storage_deploy_api_port }}"
       RUSTFS_CONSOLE_ENABLE: >-
         {{ 'true' if object_storage_deploy_console_enabled | bool else 'false' }}
+      RUSTFS_CONSOLE_ADDRESS: ":{{ object_storage_console_port }}"
   no_log: true
 
 - name: Wait until RustFS is ready

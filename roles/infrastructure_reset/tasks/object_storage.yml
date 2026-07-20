@@ -23,7 +23,7 @@
 
 - name: Remove MinIO data and configuration
   ansible.builtin.file:
-    path: "{{ infrastructure_reset_minio_root_dir }}"
+    path: "{{ minio_root_dir }}"
     state: absent
 
 - name: Remove RustFS containers
@@ -43,7 +43,7 @@
 
 - name: Remove RustFS data and configuration
   ansible.builtin.file:
-    path: "{{ infrastructure_reset_rustfs_root_dir }}"
+    path: "{{ rustfs_root_dir }}"
     state: absent
 
 - name: Remove object storage firewall local facts

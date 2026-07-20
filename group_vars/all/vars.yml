@@ -2,11 +2,13 @@
 # Inventory identity shared by every infrastructure role.
 vault_inventory: "{{ project_vault.inventory }}"
 
-# Application network contract shared by app_deploy, firewall, and Nginx.
+# Application contract shared by app_deploy, provider switching, reset, firewall, and Nginx.
+app_container_name: project-devops-deploy
+app_data_dir: /var/lib/project-devops-deploy
 app_public_port: "8080"
 app_container_management_port: "9090"
 
-# Database connection shared by database_service, database_migrations, and app_deploy.
+# Database contract shared by database_service, database_migrations, app_deploy, and reset.
 database_host: "{{ hostvars[groups['database'] | first].ansible_host }}"
 database_port: "5432"
 database_name: bulletins
@@ -14,21 +16,16 @@ database_username: bulletins_app
 database_password: "{{ project_vault.database.postgresql_password }}"
 database_url: >-
   jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
-
-# S3 contract shared by object storage roles, app_deploy, and storage_smoke_test.
-object_storage_api_port: "9000"
-object_storage_endpoint: >-
-  http://{{ hostvars[groups['object_storage'] | first].ansible_host }}:{{ object_storage_api_port }}
-object_storage_bucket: bulletin-images
-object_storage_region: us-east-1
-object_storage_object_prefix: bulletins
-object_storage_policy_name: bulletins-app-read-write
-object_storage_access_key: bulletins-app
-object_storage_secret_key: "{{ project_vault.object_storage.application_secret_key }}"
-object_storage_admin_access_key: bulletins-storage-admin
-object_storage_admin_secret_key: "{{ project_vault.object_storage.admin_secret_key }}"
+postgresql_container_name: project-devops-postgresql
+postgresql_root_dir: /var/lib/project-devops-postgresql
+postgresql_fact_file: /etc/ansible/facts.d/postgresql_firewall.fact
 
 # Reverse-proxy contract shared by the HTTP and HTTPS Nginx roles.
+nginx_http_port: "80"
+nginx_https_port: "443"
+nginx_site_available_path: /etc/nginx/sites-available/project-devops-deploy.conf
+nginx_site_enabled_path: /etc/nginx/sites-enabled/project-devops-deploy.conf
+nginx_default_site_path: /etc/nginx/sites-enabled/default
 nginx_server_name: n-devops.jumpingcrab.com
 nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
 nginx_uploads_enabled: true

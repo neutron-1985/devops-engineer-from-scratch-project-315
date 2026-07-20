@@ -2,7 +2,7 @@
 - name: Configure MinIO resources
   module_defaults:
     community.docker.docker_container:
-      image: "{{ minio_client_image }}"
+      image: "{{ object_storage_client_image }}"
       state: started
       detach: false
       cleanup: true
@@ -10,62 +10,63 @@
       network_mode: host
       env:
         MC_HOST_local: >-
-          http://{{ minio_root_user }}:{{ minio_root_password }}@127.0.0.1:{{ object_storage_deploy_api_port }}
+          http://{{ object_storage_admin_access_key }}:{{ object_storage_admin_secret_key }}@127.0.0.1:{{ object_storage_deploy_api_port }}
   when: not ansible_check_mode
   no_log: true
+
   block:
     - name: Create MinIO bucket
       community.docker.docker_container:
-        name: project-devops-minio-create-bucket
+        name: "{{ minio_container_name }}-create-bucket"
         command:
           - mb
           - --ignore-existing
           - --region
-          - "{{ minio_region }}"
-          - "local/{{ minio_bucket }}"
+          - "{{ object_storage_region }}"
+          - "local/{{ object_storage_bucket }}"
 
     - name: Configure public read access for MinIO bulletin images
       community.docker.docker_container:
-        name: project-devops-minio-configure-public-downloads
+        name: "{{ minio_container_name }}-configure-public-downloads"
         command:
           - anonymous
           - set
-          - "{{ 'download' if minio_public_downloads | bool else 'none' }}"
-          - "local/{{ minio_bucket }}/{{ minio_app_object_prefix }}"
+          - "{{ 'download' if object_storage_public_downloads | bool else 'none' }}"
+          - "local/{{ object_storage_bucket }}/{{ object_storage_object_prefix }}"
 
     - name: Create or update MinIO application user
       community.docker.docker_container:
-        name: project-devops-minio-configure-user
+        name: "{{ minio_container_name }}-configure-user"
         command:
           - admin
           - user
           - add
           - local
-          - "{{ minio_app_access_key }}"
-          - "{{ minio_app_secret_key }}"
+          - "{{ object_storage_access_key }}"
+          - "{{ object_storage_secret_key }}"
 
     - name: Create or update MinIO application policy
       community.docker.docker_container:
-        name: project-devops-minio-configure-policy
+        name: "{{ minio_container_name }}-configure-policy"
         command:
           - admin
           - policy
           - create
           - local
-          - "{{ minio_app_policy_name }}"
+          - "{{ object_storage_policy_name }}"
           - /config/application-policy.json
         volumes:
           - "{{ minio_app_policy_file }}:/config/application-policy.json:ro"
 
     - name: Attach application policy to MinIO application user
       community.docker.docker_container:
-        name: project-devops-minio-attach-policy
+        name: "{{ minio_container_name }}-attach-policy"
         command:
           - admin
           - policy
           - attach
           - local
-          - "{{ minio_app_policy_name }}"
+          - "{{ object_storage_policy_name }}"
           - --user
-          - "{{ minio_app_access_key }}"
+          - "{{ object_storage_access_key }}"
 

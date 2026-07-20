@@ -1,14 +1,14 @@
 ---
 - name: Inspect application container before S3 transition
   community.docker.docker_container_info:
-    name: "{{ object_storage_provider_switch_application_container_name }}"
+    name: "{{ app_container_name }}"
   delegate_to: "{{ groups['production'] | first }}"
   register: object_storage_provider_switch_application_container
   no_log: true
 
 - name: Stop application for final object storage transition
   community.docker.docker_container:
-    name: "{{ object_storage_provider_switch_application_container_name }}"
+    name: "{{ app_container_name }}"
     state: stopped
   delegate_to: "{{ groups['production'] | first }}"
   when: object_storage_provider_switch_application_container.exists
