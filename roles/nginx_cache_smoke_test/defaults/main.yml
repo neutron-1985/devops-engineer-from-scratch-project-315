@@ -1,0 +1,4 @@
+---
+nginx_cache_smoke_base_url: "https://{{ nginx_server_name }}"
+nginx_cache_smoke_content: project-devops-nginx-cache-smoke-test
+nginx_cache_smoke_filename: nginx-cache-smoke.txt

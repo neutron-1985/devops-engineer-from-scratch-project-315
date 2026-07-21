@@ -1,0 +1,50 @@
+---
+- name: Validate Nginx bootstrap settings
+  ansible.builtin.assert:
+    that:
+      - nginx_main_config_path | length > 0
+      - nginx_listen_port | string | length > 0
+    fail_msg: Nginx installation requires a main configuration path and a listen port.
+
+- name: Replace the distribution Nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_main_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: nginx_install_main_config
+
+- name: Validate minimal Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Inspect Nginx service state after configuration
+  ansible.builtin.service_facts:
+
+- name: Remember whether Nginx is running
+  ansible.builtin.set_fact:
+    nginx_install_service_is_running: >-
+      {{
+        ansible_facts.services.get('nginx.service', {}).get('state', '')
+        == 'running'
+      }}
+
+- name: Reload running Nginx after configuration change
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  when:
+    - nginx_install_service_is_running | bool
+    - nginx_install_main_config.changed
+
+- name: Start Nginx when it is not running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+  when: not (nginx_install_service_is_running | bool)
+
+- name: Enable Nginx at boot
+  ansible.builtin.service:
+    name: nginx
+    enabled: true

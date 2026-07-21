@@ -1,7 +1,7 @@
 ---
-- name: Remove smoke-test object with object storage administrative credentials
+- name: Remove Nginx cache smoke-test object from object storage
   community.docker.docker_container:
-    name: object-storage-smoke-cleanup
+    name: nginx-cache-smoke-cleanup
     image: "{{ object_storage_client_image }}"
     state: started
     detach: false
@@ -11,7 +11,7 @@
     command:
       - rm
       - --force
-      - "local/{{ object_storage_bucket }}/{{ object_storage_smoke_upload.json.key }}"
+      - "local/{{ object_storage_bucket }}/{{ nginx_cache_smoke_upload.json.key }}"
     env:
       MC_HOST_local: >-
         http://{{ object_storage_admin_access_key }}:{{ object_storage_admin_secret_key }}@127.0.0.1:{{ object_storage_api_port }}
@@ -20,6 +20,6 @@
   become: false
   no_log: true
   when:
-    - object_storage_smoke_upload is defined
-    - object_storage_smoke_upload.json is defined
-    - object_storage_smoke_upload.json.key is defined
+    - nginx_cache_smoke_upload is defined
+    - nginx_cache_smoke_upload.json is defined
+    - nginx_cache_smoke_upload.json.key is defined

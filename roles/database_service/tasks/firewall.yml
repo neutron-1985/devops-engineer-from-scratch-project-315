@@ -22,7 +22,7 @@
 
 - name: Create Ansible local facts directory
   ansible.builtin.file:
-    path: "{{ postgresql_fact_dir }}"
+    path: "{{ ansible_local_facts_dir }}"
     state: directory
     owner: root
     group: root

@@ -1,6 +1,7 @@
 ---
-# Inventory identity shared by every infrastructure role.
+# Inventory identity and filesystem contracts shared by infrastructure roles.
 vault_inventory: "{{ project_vault.inventory }}"
+ansible_local_facts_dir: /etc/ansible/facts.d
 
 # Application contract shared by app_deploy, provider switching, reset, firewall, and Nginx.
 app_container_name: project-devops-deploy
@@ -18,21 +19,19 @@ database_url: >-
   jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
 postgresql_container_name: project-devops-postgresql
 postgresql_root_dir: /var/lib/project-devops-postgresql
-postgresql_fact_file: /etc/ansible/facts.d/postgresql_firewall.fact
+postgresql_fact_file: "{{ ansible_local_facts_dir }}/postgresql_firewall.fact"
 
 # Reverse-proxy contract shared by the HTTP and HTTPS Nginx roles.
 nginx_http_port: "80"
 nginx_https_port: "443"
-nginx_site_available_path: /etc/nginx/sites-available/project-devops-deploy.conf
-nginx_site_enabled_path: /etc/nginx/sites-enabled/project-devops-deploy.conf
-nginx_default_site_path: /etc/nginx/sites-enabled/default
+nginx_listen_port: "{{ nginx_http_port }}"
+nginx_main_config_path: /etc/nginx/nginx.conf
 nginx_server_name: n-devops.jumpingcrab.com
 nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
-nginx_uploads_enabled: true
 nginx_uploads_upstream: "{{ object_storage_endpoint }}"
 nginx_uploads_bucket: "{{ object_storage_bucket }}"
-nginx_client_max_body_size: 20m
-nginx_static_cache_path: /var/cache/nginx/project-static
+nginx_cache_root_dir: /var/cache/nginx
+nginx_static_cache_path: "{{ nginx_cache_root_dir }}/project-static"
 nginx_static_cache_max_size: 256m
-nginx_uploads_cache_path: /var/cache/nginx/project-uploads
+nginx_uploads_cache_path: "{{ nginx_cache_root_dir }}/project-uploads"
 nginx_uploads_cache_max_size: 1g

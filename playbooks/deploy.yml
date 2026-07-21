@@ -32,3 +32,4 @@
 
   roles:
     - role: object_storage_smoke_test
+    - role: nginx_cache_smoke_test

@@ -1,7 +1,7 @@
 ---
 - name: Verify application delete restriction
-  delegate_to: "{{ object_storage_smoke_host }}"
-  remote_user: "{{ object_storage_smoke_user }}"
+  delegate_to: "{{ object_storage_inventory_host }}"
+  remote_user: "{{ vault_inventory.deploy_user }}"
   become: false
   block:
     - name: Attempt to delete object with application credentials
@@ -19,7 +19,7 @@
           - "app/{{ object_storage_bucket }}/{{ object_storage_smoke_upload.json.key }}"
         env:
           MC_HOST_app: >-
-            http://{{ object_storage_access_key }}:{{ object_storage_secret_key }}@127.0.0.1:{{ object_storage_smoke_api_port }}
+            http://{{ object_storage_access_key }}:{{ object_storage_secret_key }}@127.0.0.1:{{ object_storage_api_port }}
       register: object_storage_smoke_forbidden_delete
       changed_when: false
       failed_when: >-
