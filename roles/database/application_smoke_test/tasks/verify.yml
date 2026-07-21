@@ -1,0 +1,38 @@
+---
+- name: Verify migrated application relation
+  community.postgresql.postgresql_query:
+    login_host: "{{ application_database_smoke_login_host }}"
+    login_port: "{{ application_database_smoke_port }}"
+    login_db: "{{ application_database_smoke_database }}"
+    login_user: "{{ application_database_smoke_user }}"
+    login_password: "{{ application_database_smoke_password }}"
+    query: SELECT to_regclass(%(relation)s) IS NOT NULL AS relation_exists;
+    named_args:
+      relation: "{{ application_database_smoke_relation }}"
+  delegate_to: "{{ application_database_smoke_database_host }}"
+  register: application_database_smoke_schema
+  no_log: true
+
+- name: Validate migrated application relation
+  ansible.builtin.assert:
+    that:
+      - application_database_smoke_schema.query_result[0].relation_exists | bool
+    fail_msg: >-
+      Required database relation {{ application_database_smoke_relation }}
+      does not exist after migration.
+
+- name: Wait for application readiness with PostgreSQL
+  ansible.builtin.uri:
+    url: "{{ application_database_smoke_readiness_url }}"
+    status_code: 200
+  register: application_database_smoke_readiness
+  until: application_database_smoke_readiness.status == 200
+  retries: "{{ application_database_smoke_retries }}"
+  delay: "{{ application_database_smoke_delay }}"
+
+- name: Verify application public endpoint with PostgreSQL
+  ansible.builtin.uri:
+    url: "{{ application_database_smoke_app_url }}"
+    status_code:
+      - 200
+      - 302

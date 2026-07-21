@@ -1,0 +1,59 @@
+---
+- name: "Step 3 | Provision object storage hosts"
+  hosts: object_storage
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_03
+    - storage
+
+  roles:
+    - role: vendor/geerlingguy.docker
+    - role: common/deployment_access
+    - role: common/firewall_policy
+    - role: object_storage/host
+
+  tasks:
+    - name: Prepare selected object storage provider configuration
+      ansible.builtin.import_role:
+        name: object_storage/deploy
+        tasks_from: prepare
+
+- name: "Step 3 | Deploy S3-compatible object storage service"
+  hosts: object_storage
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  tags:
+    - step_03
+    - storage
+
+  roles:
+    - role: object_storage/provider_switch
+
+- name: "Step 3 | Switch production application to S3"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_03
+    - storage
+
+  vars:
+    app_profile: prod
+    app_storage_backend: s3
+    app_bind_address: 0.0.0.0
+    app_active_stop_expected: >-
+      {{ hostvars[groups['object_storage'] | first]
+         .object_storage_provider_switch_transition_required
+         | default(false) | bool }}
+
+  roles:
+    - role: application/service
+    - role: object_storage/smoke_test
+
+  post_tasks:
+    - name: Complete the application S3 transition
+      ansible.builtin.import_role:
+        name: object_storage/provider_switch
+        tasks_from: complete

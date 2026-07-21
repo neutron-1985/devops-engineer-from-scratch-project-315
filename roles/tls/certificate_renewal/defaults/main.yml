@@ -1,0 +1,4 @@
+---
+tls_certificate_renewal_certificate_name: "{{ nginx_server_name }}"
+tls_certificate_renewal_deploy_hook: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+tls_certificate_renewal_timer_unit: certbot.timer

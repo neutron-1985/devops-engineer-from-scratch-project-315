@@ -1,8 +1,0 @@
----
-postgresql_image: postgres:17-alpine
-postgresql_python_driver_package: python3-psycopg2
-postgresql_database: "{{ database_name }}"
-postgresql_user: "{{ database_username }}"
-postgresql_password: "{{ database_password }}"
-postgresql_port: "{{ database_port }}"
-postgresql_allowed_cidrs: "{{ project_vault.database.application_allowed_cidrs }}"

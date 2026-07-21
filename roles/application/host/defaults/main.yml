@@ -1,0 +1,6 @@
+---
+# Runtime identity declared by the application image.
+app_container_uid: "100"
+app_container_gid: "101"
+
+app_uploads_dir: "{{ app_data_dir }}/bulletin-images"

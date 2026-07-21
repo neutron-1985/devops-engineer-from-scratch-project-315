@@ -6,4 +6,4 @@
   tags: reset
 
   roles:
-    - role: infrastructure_reset
+    - role: common/infrastructure_reset

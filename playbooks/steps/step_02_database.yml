@@ -1,0 +1,48 @@
+---
+- name: "Step 2 | Provision database hosts"
+  hosts: database
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_02
+    - database
+
+  roles:
+    - role: vendor/geerlingguy.docker
+    - role: common/deployment_access
+    - role: common/firewall_policy
+    - role: database/host
+    - role: database/firewall
+
+- name: "Step 2 | Run PostgreSQL container"
+  hosts: database
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_02
+    - database
+
+  roles:
+    - role: database/service
+    - role: database/service_smoke_test
+
+- name: "Step 2 | Migrate database and switch application to production"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - step_02
+    - database
+
+  vars:
+    app_profile: prod
+    app_storage_backend: local
+    app_bind_address: 0.0.0.0
+
+  roles:
+    - role: database/migration
+    - role: application/service
+    - role: database/application_smoke_test

@@ -1,7 +1,6 @@
 ---
-- import_playbook: playbooks/steps/step_01_infrastructure.yml
-- import_playbook: playbooks/steps/step_02_application.yml
-- import_playbook: playbooks/steps/step_03_database.yml
-- import_playbook: playbooks/steps/step_04_object_storage.yml
-- import_playbook: playbooks/steps/step_05_nginx.yml
-- import_playbook: playbooks/steps/step_06_https.yml
+- import_playbook: playbooks/steps/step_01_application.yml
+- import_playbook: playbooks/steps/step_02_database.yml
+- import_playbook: playbooks/steps/step_03_object_storage.yml
+- import_playbook: playbooks/steps/step_04_nginx.yml
+- import_playbook: playbooks/steps/step_05_https.yml

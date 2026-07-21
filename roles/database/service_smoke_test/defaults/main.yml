@@ -1,0 +1,11 @@
+---
+database_service_smoke_host: 127.0.0.1
+database_service_smoke_port: "{{ database_port }}"
+database_service_smoke_database: "{{ database_name }}"
+database_service_smoke_user: "{{ database_username }}"
+database_service_smoke_password: "{{ database_password }}"
+database_service_smoke_container_name: "{{ postgresql_container_name }}"
+database_service_smoke_table: ansible_database_persistence_smoke
+database_service_smoke_marker: persisted-across-postgresql-restart
+database_service_smoke_retries: 10
+database_service_smoke_delay: 3

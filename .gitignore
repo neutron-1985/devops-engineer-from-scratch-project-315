@@ -1,4 +1,4 @@
-roles/geerlingguy.*/
+roles/vendor/
 collections/
 generated.inventory.ini
 generated.known_hosts

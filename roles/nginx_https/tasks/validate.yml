@@ -1,9 +1,0 @@
----
-- name: Validate Nginx HTTPS configuration
-  ansible.builtin.assert:
-    that:
-      - nginx_server_name | length > 0
-      - nginx_server_name != '_'
-      - nginx_https_certificate_name | length > 0
-      - certbot_webroot | length > 0
-    fail_msg: "HTTPS requires a public server name, certificate name, and ACME webroot."

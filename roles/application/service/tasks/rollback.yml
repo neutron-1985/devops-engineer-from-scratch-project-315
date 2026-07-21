@@ -1,0 +1,131 @@
+---
+- name: Inspect active application container
+  community.docker.docker_container_info:
+    name: "{{ app_container_name }}"
+  register: app_rollback_active
+  no_log: true
+
+- name: Inspect previous application container
+  community.docker.docker_container_info:
+    name: "{{ app_previous_container_name }}"
+  register: app_rollback_previous
+  no_log: true
+
+- name: Inspect temporary rollback slot
+  community.docker.docker_container_info:
+    name: "{{ app_rollback_container_name }}"
+  register: app_rollback_slot
+  no_log: true
+
+- name: Validate manual rollback state
+  ansible.builtin.assert:
+    that:
+      - app_container_name != app_previous_container_name
+      - app_container_name != app_rollback_container_name
+      - app_previous_container_name != app_rollback_container_name
+      - not ansible_check_mode
+      - app_rollback_active.exists
+      - app_rollback_previous.exists
+      - not app_rollback_slot.exists
+    fail_msg: >-
+      Manual rollback requires active and previous containers, an empty
+      rollback slot, and a normal Ansible run.
+
+- name: Initialize manual rollback transaction
+  ansible.builtin.set_fact:
+    app_rollback_active_staged: false
+    app_rollback_active_stopped: false
+    app_rollback_previous_activated: false
+
+- name: Swap active and previous application containers
+  block:
+    - name: Stop active application container
+      ansible.builtin.command: >-
+        docker stop -t {{ app_container_stop_timeout }} {{ app_container_name }}
+      changed_when: true
+
+    - name: Remember stopped active application container
+      ansible.builtin.set_fact:
+        app_rollback_active_stopped: true
+
+    - name: Stage active application container
+      ansible.builtin.command: >-
+        docker rename {{ app_container_name }} {{ app_rollback_container_name }}
+      changed_when: true
+
+    - name: Remember staged active application container
+      ansible.builtin.set_fact:
+        app_rollback_active_staged: true
+
+    - name: Activate previous application container name
+      ansible.builtin.command: >-
+        docker rename {{ app_previous_container_name }} {{ app_container_name }}
+      changed_when: true
+
+    - name: Remember activated previous application container
+      ansible.builtin.set_fact:
+        app_rollback_previous_activated: true
+
+    - name: Start rolled back application container
+      ansible.builtin.command: "docker start {{ app_container_name }}"
+      changed_when: true
+
+    - name: Verify rolled back application container
+      ansible.builtin.include_tasks: verify_container.yml
+
+    - name: Keep replaced release as previous container
+      ansible.builtin.command: >-
+        docker rename {{ app_rollback_container_name }} {{ app_previous_container_name }}
+      changed_when: true
+
+    - name: Report successful manual rollback
+      ansible.builtin.debug:
+        msg: >-
+          Application runtime rolled back successfully. The replaced release
+          is retained as {{ app_previous_container_name }}.
+
+  rescue:
+    - name: Stop unsuccessful rolled back container
+      ansible.builtin.command: >-
+        docker stop -t {{ app_container_stop_timeout }} {{ app_container_name }}
+      changed_when: true
+      failed_when: false
+      when: app_rollback_previous_activated | bool
+
+    - name: Return unsuccessful rollback target to previous slot
+      ansible.builtin.command: >-
+        docker rename {{ app_container_name }} {{ app_previous_container_name }}
+      changed_when: true
+      when: app_rollback_previous_activated | bool
+
+    - name: Restore original active container name
+      ansible.builtin.command: >-
+        docker rename {{ app_rollback_container_name }} {{ app_container_name }}
+      changed_when: true
+      when: app_rollback_active_staged | bool
+
+    - name: Restart active container when staging failed
+      ansible.builtin.command: "docker start {{ app_container_name }}"
+      changed_when: true
+      when:
+        - app_rollback_active_stopped | bool
+        - not app_rollback_active_staged | bool
+
+    - name: Verify active container after failed staging
+      ansible.builtin.include_tasks: verify_container.yml
+      when:
+        - app_rollback_active_stopped | bool
+        - not app_rollback_active_staged | bool
+
+    - name: Restart original active container
+      ansible.builtin.command: "docker start {{ app_container_name }}"
+      changed_when: true
+      when: app_rollback_active_staged | bool
+
+    - name: Verify original application after failed manual rollback
+      ansible.builtin.include_tasks: verify_container.yml
+      when: app_rollback_active_staged | bool
+
+    - name: Fail manual rollback after restoring original runtime
+      ansible.builtin.fail:
+        msg: "Manual rollback failed; the original application runtime was restored."

@@ -8,7 +8,7 @@
   tags: deploy
 
   roles:
-    - role: database_migrations
+    - role: database/migration
 
 - name: Deploy application
   hosts: application
@@ -20,9 +20,11 @@
   vars:
     app_profile: "{{ 'prod' if 'production' in group_names else 'dev' }}"
     app_storage_backend: "{{ 's3' if 'production' in group_names else 'local' }}"
+    app_s3_public_url: "{{ '/uploads' if 'production' in group_names else '' }}"
+    app_require_immutable_image_tag: true
 
   roles:
-    - role: app_deploy
+    - role: application/service
 
 - name: Verify production deployment
   hosts: production
@@ -31,5 +33,6 @@
   gather_facts: false
 
   roles:
-    - role: object_storage_smoke_test
-    - role: nginx_cache_smoke_test
+    - role: database/application_smoke_test
+    - role: object_storage/smoke_test
+    - role: nginx/cache_smoke_test

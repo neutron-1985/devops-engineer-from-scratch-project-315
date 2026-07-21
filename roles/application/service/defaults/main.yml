@@ -1,0 +1,68 @@
+---
+app_image_repository: docker.io/neutron1985/project-devops-deploy
+app_image_tag: latest
+app_image: "{{ app_image_repository }}:{{ app_image_tag }}"
+app_immutable_image_tag_pattern: '^sha-[0-9a-f]{7,40}$'
+app_require_immutable_image_tag: false
+app_active_stop_expected: false
+app_previous_container_name: "{{ app_container_name }}-previous"
+app_rollback_container_name: "{{ app_container_name }}-rollback"
+app_container_stop_timeout: 10
+
+# Keep structured stdout logs locally with bounded disk usage.
+app_log_driver: json-file
+app_log_options:
+  max-size: 10m
+  max-file: "5"
+
+# Published container ports.
+app_bind_address: 127.0.0.1
+app_management_bind_address: 127.0.0.1
+
+# Runtime configuration passed to the Spring Boot application.
+app_profile: dev
+app_storage_backend: local
+app_java_opts: "-Xms256m -Xmx512m"
+
+# S3-compatible object storage used by the production profile.
+app_s3_endpoint: "{{ object_storage_endpoint }}"
+app_s3_bucket: "{{ object_storage_bucket }}"
+app_s3_region: "{{ object_storage_region }}"
+app_s3_access_key: "{{ object_storage_access_key }}"
+app_s3_secret_key: "{{ object_storage_secret_key }}"
+app_s3_public_url: ""
+
+# Environment shared by every application profile.
+app_common_environment:
+  SPRING_PROFILES_ACTIVE: "{{ app_profile }}"
+  MANAGEMENT_SERVER_PORT: "{{ app_container_management_port }}"
+  JAVA_OPTS: "{{ app_java_opts }}"
+
+# External service environment is composed from profile and storage backend.
+app_database_environment:
+  SPRING_DATASOURCE_URL: "{{ database_url }}"
+  SPRING_DATASOURCE_USERNAME: "{{ database_username }}"
+  SPRING_DATASOURCE_PASSWORD: "{{ database_password }}"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+app_s3_environment:
+  STORAGE_S3_BUCKET: "{{ app_s3_bucket }}"
+  STORAGE_S3_REGION: "{{ app_s3_region }}"
+  STORAGE_S3_ENDPOINT: "{{ app_s3_endpoint }}"
+  STORAGE_S3_ACCESSKEY: "{{ app_s3_access_key }}"
+  STORAGE_S3_SECRETKEY: "{{ app_s3_secret_key }}"
+  STORAGE_S3_CDNURL: "{{ app_s3_public_url }}"
+app_external_services_environment: >-
+  {{ (app_database_environment if app_profile == 'prod' else {})
+     | combine(app_s3_environment if app_storage_backend == 's3' else {}) }}
+
+# Persistent host paths. Uploaded images are mounted into the path used by LocalImageStorageService.
+app_uploads_dir: "{{ app_data_dir }}/bulletin-images"
+app_container_uploads_dir: /tmp/bulletin-images
+
+# Health checks.
+app_healthcheck_retries: 20
+app_healthcheck_delay: 3
+app_healthcheck_path: /
+app_healthcheck_status_codes:
+  - 200
+  - 302

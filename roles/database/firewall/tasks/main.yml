@@ -1,0 +1,9 @@
+---
+- name: Validate PostgreSQL firewall configuration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Configure PostgreSQL firewall rules
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Persist PostgreSQL firewall state
+  ansible.builtin.import_tasks: save_state.yml

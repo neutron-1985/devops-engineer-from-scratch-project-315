@@ -3,13 +3,13 @@
 vault_inventory: "{{ project_vault.inventory }}"
 ansible_local_facts_dir: /etc/ansible/facts.d
 
-# Application contract shared by app_deploy, provider switching, reset, firewall, and Nginx.
+# Application contract shared by application roles, provider switching, reset, firewall, and Nginx.
 app_container_name: project-devops-deploy
 app_data_dir: /var/lib/project-devops-deploy
 app_public_port: "8080"
 app_container_management_port: "9090"
 
-# Database contract shared by database_service, database_migrations, app_deploy, and reset.
+# Database contract shared by database roles, application/service, and common/infrastructure_reset.
 database_host: "{{ hostvars[groups['database'] | first].ansible_host }}"
 database_port: "5432"
 database_name: bulletins
@@ -27,6 +27,7 @@ nginx_https_port: "443"
 nginx_listen_port: "{{ nginx_http_port }}"
 nginx_main_config_path: /etc/nginx/nginx.conf
 nginx_server_name: n-devops.jumpingcrab.com
+acme_challenge_webroot: /var/www/letsencrypt
 nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
 nginx_uploads_upstream: "{{ object_storage_endpoint }}"
 nginx_uploads_bucket: "{{ object_storage_bucket }}"

@@ -1,0 +1,15 @@
+---
+- name: Check issued certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ tls_certificate_renewal_certificate_name }}/fullchain.pem"
+  register: tls_certificate_renewal_certificate
+
+- name: Validate certificate renewal configuration
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_renewal_deploy_hook | length > 0
+      - tls_certificate_renewal_timer_unit | length > 0
+      - tls_certificate_renewal_certificate.stat.exists or ansible_check_mode
+    fail_msg: >-
+      Certificate renewal requires an issued certificate, a systemd timer,
+      and a Certbot deploy hook.

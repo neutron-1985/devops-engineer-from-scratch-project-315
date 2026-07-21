@@ -1,6 +1,0 @@
----
-- name: Configure PostgreSQL host
-  ansible.builtin.import_tasks: admin.yml
-
-- name: Manage PostgreSQL container
-  ansible.builtin.import_tasks: containers.yml

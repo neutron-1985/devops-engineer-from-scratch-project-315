@@ -1,0 +1,58 @@
+---
+- name: Validate Docker image configuration
+  ansible.builtin.assert:
+    that:
+      - app_image_repository | default('') | length > 0
+    fail_msg: "app_image_repository must identify the Docker image repository."
+
+- name: Require an immutable image tag for controlled deployment
+  ansible.builtin.assert:
+    that:
+      - app_image_tag is match(app_immutable_image_tag_pattern)
+    fail_msg: >-
+      Controlled deployments require an immutable CI tag matching
+      {{ app_immutable_image_tag_pattern }}; received {{ app_image_tag }}.
+  when: app_require_immutable_image_tag | bool
+
+- name: Validate application logging configuration
+  ansible.builtin.assert:
+    that:
+      - app_log_driver | length > 0
+      - app_log_options is mapping
+    fail_msg: "Application container logging requires a driver and an options mapping."
+
+- name: Validate application release container settings
+  ansible.builtin.assert:
+    that:
+      - app_previous_container_name | length > 0
+      - app_rollback_container_name | length > 0
+      - app_container_name != app_previous_container_name
+      - app_container_name != app_rollback_container_name
+      - app_previous_container_name != app_rollback_container_name
+      - app_container_stop_timeout | int >= 0
+    fail_msg: >-
+      Active, previous, and rollback container names must be distinct, and
+      app_container_stop_timeout must be non-negative.
+
+- name: Validate production database configuration
+  ansible.builtin.assert:
+    that:
+      - database_host | default('') | length > 0
+      - database_name | default('') | length > 0
+      - database_username | default('') | length > 0
+      - database_password | default('') | length > 0
+    fail_msg: "The prod profile requires PostgreSQL connection variables."
+  when: app_profile == "prod"
+  no_log: true
+
+- name: Validate production object storage configuration
+  ansible.builtin.assert:
+    that:
+      - app_s3_bucket | default('') | length > 0
+      - app_s3_region | default('') | length > 0
+      - app_s3_endpoint | default('') | length > 0
+      - app_s3_access_key | default('') | length > 0
+      - app_s3_secret_key | default('') | length > 0
+    fail_msg: "The prod profile requires S3-compatible object storage variables."
+  when: app_storage_backend == "s3"
+  no_log: true

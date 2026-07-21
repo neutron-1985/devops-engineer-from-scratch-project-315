@@ -1,0 +1,22 @@
+---
+- name: Run Flyway migrations
+  community.docker.docker_container:
+    name: "{{ database_migration_container_name }}"
+    image: "{{ database_migration_image }}"
+    state: started
+    command: migrate
+    detach: false
+    cleanup: true
+    recreate: true
+    pull: missing
+    volumes:
+      - "{{ database_migration_dir }}:/flyway/sql:ro"
+    env:
+      FLYWAY_URL: "{{ database_migration_url }}"
+      FLYWAY_USER: "{{ database_migration_user }}"
+      FLYWAY_PASSWORD: "{{ database_migration_password }}"
+      FLYWAY_CONNECT_RETRIES: "{{ database_migration_connect_retries }}"
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      REDGATE_DISABLE_TELEMETRY: "true"
+  no_log: true
+  when: not ansible_check_mode

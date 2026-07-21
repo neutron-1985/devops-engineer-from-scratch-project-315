@@ -1,0 +1,14 @@
+---
+- name: Validate application database smoke-test settings
+  ansible.builtin.assert:
+    that:
+      - application_database_smoke_database_host | length > 0
+      - application_database_smoke_login_host | length > 0
+      - application_database_smoke_database | length > 0
+      - application_database_smoke_user | length > 0
+      - application_database_smoke_password | length > 0
+      - application_database_smoke_relation is match('^[A-Za-z_][A-Za-z0-9_.]*$')
+      - application_database_smoke_retries | int > 0
+      - application_database_smoke_delay | int >= 0
+    fail_msg: Application database smoke test requires valid database and endpoint settings.
+  no_log: true

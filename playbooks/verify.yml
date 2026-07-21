@@ -1,0 +1,36 @@
+---
+- name: Verify production database and object storage through the application
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - deploy
+    - smoke
+
+  roles:
+    - role: database/application_smoke_test
+    - role: object_storage/smoke_test
+
+- name: Verify production Nginx caches
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - deploy
+    - smoke
+    - cache-smoke
+
+  roles:
+    - role: nginx/cache_smoke_test
+
+- name: Verify production HTTPS and certificate renewal
+  hosts: production
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  gather_facts: false
+  tags: tls-smoke
+
+  roles:
+    - role: tls/smoke_test

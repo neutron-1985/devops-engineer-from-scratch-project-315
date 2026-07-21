@@ -1,0 +1,13 @@
+---
+- name: Wait for PostgreSQL authentication
+  community.postgresql.postgresql_ping:
+    login_host: "{{ database_service_smoke_host }}"
+    login_port: "{{ database_service_smoke_port }}"
+    login_db: "{{ database_service_smoke_database }}"
+    login_user: "{{ database_service_smoke_user }}"
+    login_password: "{{ database_service_smoke_password }}"
+  register: database_service_smoke_connectivity
+  until: database_service_smoke_connectivity.is_available | default(false)
+  retries: "{{ database_service_smoke_retries }}"
+  delay: "{{ database_service_smoke_delay }}"
+  no_log: true
