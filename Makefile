@@ -24,7 +24,7 @@ help:
 	@echo "    make nginx             Alias for step-04"
 	@echo "    make nginx-install     Install and start Nginx"
 	@echo "    make nginx-proxy       Configure the application reverse proxy"
-	@echo "    make nginx-cache       Add static and upload caches"
+	@echo "    make nginx-cache       Add caches and complete the storage proxy cutover"
 	@echo "    make nginx-cache-check Verify the HTTP cache behavior"
 	@echo "  make step-05             Run all HTTPS stages"
 	@echo "    make https             Alias for step-05"

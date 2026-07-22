@@ -1,6 +1,5 @@
 ---
 postgresql_image: postgres:17-alpine
-postgresql_data_dir: "{{ postgresql_root_dir }}/data"
 postgresql_database: "{{ database_name }}"
 postgresql_user: "{{ database_username }}"
 postgresql_password: "{{ database_password }}"

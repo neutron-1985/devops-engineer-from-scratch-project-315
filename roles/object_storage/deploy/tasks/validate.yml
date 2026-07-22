@@ -8,6 +8,7 @@
       - object_storage_console_port | int > 0
       - object_storage_console_port | int <= 65535
       - (object_storage_console_port | int) != (object_storage_deploy_api_port | int)
+      - object_storage_console_bind_address | default('') | length > 0
       - object_storage_admin_access_key | default('') | length >= 3
       - object_storage_admin_secret_key | default('') | length >= 16
       - object_storage_access_key | default('') | length >= 3

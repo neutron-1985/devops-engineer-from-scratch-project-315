@@ -4,6 +4,7 @@ object_storage_provider: rustfs
 object_storage_client_image: minio/mc:RELEASE.2025-08-13T08-35-41Z
 object_storage_api_port: "9000"
 object_storage_console_port: "9001"
+object_storage_console_bind_address: 127.0.0.1
 object_storage_inventory_host: "{{ groups['object_storage'] | first }}"
 object_storage_endpoint: >-
   http://{{ hostvars[object_storage_inventory_host].ansible_host }}:{{ object_storage_api_port }}
@@ -15,8 +16,10 @@ object_storage_access_key: bulletins-app
 object_storage_secret_key: "{{ project_vault.object_storage.application_secret_key }}"
 object_storage_admin_access_key: bulletins-storage-admin
 object_storage_admin_secret_key: "{{ project_vault.object_storage.admin_secret_key }}"
-object_storage_host_allowed_cidrs:
+object_storage_public_api_allowed_cidrs:
   - 0.0.0.0/0
+object_storage_application_api_allowed_cidrs:
+  - "{{ hostvars[groups['production'] | first].ansible_host }}/32"
 
 object_storage_migration_container_name: project-devops-object-storage-migration
 minio_container_name: project-devops-minio

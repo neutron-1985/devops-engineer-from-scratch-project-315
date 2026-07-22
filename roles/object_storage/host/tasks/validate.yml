@@ -1,9 +1,0 @@
----
-- name: Validate object storage firewall allowlist
-  ansible.builtin.assert:
-    that:
-      - (object_storage_host_allowed_cidrs | type_debug) == 'list'
-      - object_storage_host_allowed_cidrs | length > 0
-      - (object_storage_host_previous_allowed_cidrs | type_debug) == 'list'
-    fail_msg: Object storage firewall allowlists and their saved state must be lists.
-

@@ -6,6 +6,7 @@ ansible_local_facts_dir: /etc/ansible/facts.d
 # Application contract shared by application roles, provider switching, reset, firewall, and Nginx.
 app_container_name: project-devops-deploy
 app_data_dir: /var/lib/project-devops-deploy
+app_uploads_dir: "{{ app_data_dir }}/bulletin-images"
 app_public_port: "8080"
 app_container_management_port: "9090"
 
@@ -19,6 +20,7 @@ database_url: >-
   jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
 postgresql_container_name: project-devops-postgresql
 postgresql_root_dir: /var/lib/project-devops-postgresql
+postgresql_data_dir: "{{ postgresql_root_dir }}/data"
 postgresql_fact_file: "{{ ansible_local_facts_dir }}/postgresql_firewall.fact"
 
 # Reverse-proxy contract shared by the HTTP and HTTPS Nginx roles.
@@ -27,6 +29,7 @@ nginx_https_port: "443"
 nginx_listen_port: "{{ nginx_http_port }}"
 nginx_main_config_path: /etc/nginx/nginx.conf
 nginx_server_name: n-devops.jumpingcrab.com
+tls_certificate_admin_email: neutron-1985@live.ru
 acme_challenge_webroot: /var/www/letsencrypt
 nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
 nginx_uploads_upstream: "{{ object_storage_endpoint }}"

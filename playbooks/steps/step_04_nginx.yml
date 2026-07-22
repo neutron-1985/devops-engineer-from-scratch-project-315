@@ -30,15 +30,45 @@
   tags:
     - step_04
     - nginx
+    - nginx-cache
 
   vars:
     app_profile: prod
     app_storage_backend: s3
     app_bind_address: 127.0.0.1
     app_s3_public_url: /uploads
-    nginx_cache_smoke_base_url: "http://{{ nginx_server_name }}"
 
   roles:
     - role: application/service
+
+- name: "Step 4 | Restrict object storage to the application host"
+  hosts: object_storage
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_04
+    - nginx
+    - nginx-cache
+
+  vars:
+    object_storage_api_allowed_cidrs: >-
+      {{ object_storage_application_api_allowed_cidrs }}
+
+  roles:
+    - role: object_storage/firewall
+
+- name: "Step 4 | Verify Nginx caches after restricting object storage"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_04
+    - nginx
+
+  vars:
+    nginx_cache_smoke_base_url: "http://{{ nginx_server_name }}"
+
+  roles:
     - role: nginx/cache_smoke_test
       tags: cache-smoke

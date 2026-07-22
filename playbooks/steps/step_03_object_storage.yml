@@ -11,7 +11,9 @@
     - role: vendor/geerlingguy.docker
     - role: common/deployment_access
     - role: common/firewall_policy
-    - role: object_storage/host
+    - role: object_storage/firewall
+      object_storage_api_allowed_cidrs: >-
+        {{ object_storage_public_api_allowed_cidrs }}
 
   tasks:
     - name: Prepare selected object storage provider configuration

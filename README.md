@@ -73,17 +73,17 @@ The workflow validates the tag, runs Ansible in check mode, and then performs th
 | `make step-01 APP_IMAGE_TAG=...` | Prepare application hosts and deploy the standalone application with local storage |
 | `make step-02 APP_IMAGE_TAG=...` | Prepare database hosts, provision PostgreSQL, run migrations, and switch production to the production profile |
 | `make step-03 APP_IMAGE_TAG=...` | Prepare object-storage hosts, provision the selected S3-compatible service, and switch production files to S3 |
-| `make step-04 APP_IMAGE_TAG=...` | Put the production application behind the HTTP Nginx reverse proxy |
+| `make step-04 APP_IMAGE_TAG=...` | Put the application behind Nginx, switch image delivery to `/uploads/`, and restrict the storage API |
 | `make step-05` | Enable Let's Encrypt HTTPS on production |
 | `make cert` | Publish HTTP-01 and issue the Let's Encrypt certificate |
 | `make cert-renewal` | Configure the Certbot timer and Nginx reload hook |
 | `make cert-https` | Enable secure HTTPS and redirect HTTP |
 | `make nginx-install` | Install Nginx, apply the minimal bootstrap configuration, and start it |
 | `make nginx-proxy` | Add the application reverse proxy without caching |
-| `make nginx-cache` | Add cache zones and the `/assets/` and `/uploads/` locations |
+| `make nginx-cache` | Add caches, switch uploads to Nginx, and restrict the storage API |
 | `make nginx-cache-check` | Verify HTTP cache behavior after the three learning stages |
 | `make all APP_IMAGE_TAG=...` | Install dependencies, render configuration, and run all five steps |
-| `make smoke` | Verify the application database, object storage, and Nginx caches |
+| `make smoke` | Run the database, object-storage, and Nginx smoke-test roles |
 | `make cache-check` | Verify `MISS`/`HIT` behavior for frontend assets and uploads |
 | `make tls-check` | Verify HTTPS, TLS policy, certificate renewal, and the Certbot timer |
 | `make reset` | Remove project resources, data, deploy users, Docker, and UFW from infrastructure hosts |
@@ -188,8 +188,10 @@ and keep their upstream names inside that directory.
 
 Each service step prepares its own target hosts before starting containers.
 Step 1 provisions application hosts, step 2 provisions database hosts, and
-step 3 provisions object-storage hosts. PostgreSQL and the selected object
-storage provider manage only their own restricted service firewall rules. The
+step 3 provisions object-storage hosts. PostgreSQL remains restricted to the
+application host. The storage API is public during step 3 so browsers can use
+presigned image URLs, then the `nginx-cache` substage restricts it to the
+application host after switching public image delivery to `/uploads/`. The
 provisioning user performs host
 administration, while the deployment user is created on each host during its
 provisioning step, belongs to the `docker` group, and manages containers
@@ -215,8 +217,10 @@ The Nginx implementation is split into four one-way learning stages:
 2. `nginx/reverse_proxy` keeps the same minimal `events`/`http` structure,
    replaces the text response with `proxy_pass`, and adds no cache or
    object-storage configuration.
-3. `nginx/cache` keeps that reverse proxy, then adds cache zones and the
-   `/assets/` and `/uploads/` locations. Each role renders a complete readable
+3. The `nginx-cache` substage invokes `nginx/cache` to add cache zones and the
+   `/assets/` and `/uploads/` locations, switches the application to
+   `/uploads/`, and invokes `object_storage/firewall` to restrict the storage
+   API to the application host. Each Nginx role renders a complete readable
    snapshot of its stage; no earlier role contains extension points for a
    later one.
 4. `nginx/cache_smoke_test` verifies real `MISS`/`HIT` behavior and cleans
@@ -267,10 +271,11 @@ after `make cert-https`; leaving the environment after the certificate stage
 keeps the original HTTP reverse proxy. There is no separate boolean switch.
 The `nginx/reverse_proxy` role requires no TLS-specific code or variables.
 
-Frontend files under `/assets/` are cached by Nginx for one year. Uploaded bulletin images are
-served from the selected object storage service through `/uploads/` and cached
-for 30 days. Cached responses include `X-Cache-Status`, which reports values
-such as `MISS` and `HIT`.
+Frontend files under `/assets/` and uploaded bulletin images under `/uploads/`
+are cached by Nginx for five days. Inactive cache entries are eligible for
+removal after seven days for frontend assets and after 30 days for uploads.
+Cached responses include `X-Cache-Status`, which reports values such as `MISS`
+and `HIT`.
 
 Steps 4 and 5 run an end-to-end cache smoke test after deploying the
 application. The test requests a real frontend asset twice and requires the
@@ -289,12 +294,14 @@ is configured in step 5. Nginx and TLS roles do not manage UFW themselves.
 
 ## S3-compatible object storage
 
-Object storage responsibilities are split between four roles:
+Object storage responsibilities are split between five roles:
 
-- `object_storage/host` prepares the host firewall;
+- `object_storage/firewall` manages access to the storage API;
 - `object_storage/deploy` prepares and runs MinIO or RustFS;
 - `object_storage/migration` copies and verifies data between S3 endpoints;
-- `object_storage/provider_switch` coordinates application downtime and cutover.
+- `object_storage/provider_switch` coordinates application downtime and cutover;
+- `object_storage/smoke_test` verifies application uploads, downloads, and
+  restricted application credentials.
 
 Select the implementation with `object_storage_provider` in
 `group_vars/all/object_storage.yml`; the project currently selects RustFS.
@@ -314,6 +321,23 @@ and configures two separate identities:
 - `bulletins-app` is passed to the application and has only
   `s3:GetObject` and `s3:PutObject` on
   `arn:aws:s3:::bulletin-images/bulletins/*`.
+
+The S3 API on port `9000` is publicly reachable so the application can return
+presigned image URLs immediately after step 3. Uploading, listing, and other
+protected operations still require S3 credentials. The administrative console
+on port `9001` listens only on the object-storage host loopback interface. For
+temporary console access, create an SSH tunnel through that host:
+
+```bash
+ssh -L 9001:127.0.0.1:9001 neutron@62.84.124.138
+```
+
+While the tunnel is open, use
+`http://127.0.0.1:9001/rustfs/console` for the current RustFS console. Starting
+with step 4, public image requests use the Nginx `/uploads/` location instead
+of presigned S3 URLs. After that transition, step 4 restricts port `9000` to
+the production application host and verifies `/uploads/` with the cache smoke
+test.
 
 Objects under the `bulletins/` prefix are publicly readable because they are
 public bulletin images served through Nginx. Listing the bucket and writing or
@@ -336,14 +360,18 @@ credentials as `STORAGE_S3_*` environment variables.
 
 ## Object storage verification
 
-Every production `make deploy` runs an S3 smoke test after the application
-becomes ready. Run the same check without redeploying:
+Step 3 runs `object_storage/smoke_test` after the application becomes ready.
+It uploads a text object through `POST /api/files/upload`, requests a fresh
+presigned URL from `GET /api/files/view`, downloads the object from the Ansible
+controller, compares its contents, and verifies that the application
+credentials cannot delete it. Ansible then removes the object with the
+administrative identity.
+
+After step 4, public image delivery no longer uses presigned URLs. The
+`nginx/cache_smoke_test` role uploads an object through the application and
+verifies `MISS` followed by `HIT` through `/uploads/`. Run the aggregate smoke
+playbook without redeploying:
 
 ```bash
 make smoke
 ```
-The check uploads a text object through `POST /api/files/upload`, requests a
-fresh link from `GET /api/files/view`, downloads the object through the
-public Nginx URL from the Ansible controller, and compares its contents. It also
-verifies that the application credentials cannot delete the object. Finally,
-Ansible removes the test object using the administrative identity.

@@ -16,7 +16,8 @@
       MINIO_ROOT_USER: "{{ object_storage_admin_access_key }}"
       MINIO_ROOT_PASSWORD: "{{ object_storage_admin_secret_key }}"
       MINIO_ADDRESS: ":{{ object_storage_deploy_api_port }}"
-      MINIO_CONSOLE_ADDRESS: ":{{ object_storage_console_port }}"
+      MINIO_CONSOLE_ADDRESS: >-
+        {{ object_storage_console_bind_address }}:{{ object_storage_console_port }}
       MINIO_BROWSER: >-
         {{ 'on' if object_storage_deploy_console_enabled | bool else 'off' }}
   no_log: true

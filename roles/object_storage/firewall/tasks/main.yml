@@ -1,5 +1,5 @@
 ---
-- name: Validate object storage host configuration
+- name: Validate object storage firewall configuration
   ansible.builtin.import_tasks: validate.yml
 
 - name: Configure object storage firewall

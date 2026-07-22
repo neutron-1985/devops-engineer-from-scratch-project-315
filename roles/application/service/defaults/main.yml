@@ -55,8 +55,7 @@ app_external_services_environment: >-
   {{ (app_database_environment if app_profile == 'prod' else {})
      | combine(app_s3_environment if app_storage_backend == 's3' else {}) }}
 
-# Persistent host paths. Uploaded images are mounted into the path used by LocalImageStorageService.
-app_uploads_dir: "{{ app_data_dir }}/bulletin-images"
+# Persistent container path used by LocalImageStorageService.
 app_container_uploads_dir: /tmp/bulletin-images
 
 # Health checks.

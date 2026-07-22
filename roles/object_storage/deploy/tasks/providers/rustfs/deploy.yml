@@ -18,7 +18,8 @@
       RUSTFS_ADDRESS: ":{{ object_storage_deploy_api_port }}"
       RUSTFS_CONSOLE_ENABLE: >-
         {{ 'true' if object_storage_deploy_console_enabled | bool else 'false' }}
-      RUSTFS_CONSOLE_ADDRESS: ":{{ object_storage_console_port }}"
+      RUSTFS_CONSOLE_ADDRESS: >-
+        {{ object_storage_console_bind_address }}:{{ object_storage_console_port }}
   no_log: true
 
 - name: Wait until RustFS is ready
