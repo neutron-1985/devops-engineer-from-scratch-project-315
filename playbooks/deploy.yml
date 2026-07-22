@@ -35,4 +35,5 @@
   roles:
     - role: database/application_smoke_test
     - role: object_storage/smoke_test
+      object_storage_smoke_public_base_url: "https://{{ nginx_server_name }}"
     - role: nginx/cache_smoke_test

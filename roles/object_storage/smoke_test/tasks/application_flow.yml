@@ -21,7 +21,7 @@
         )
     fail_msg: The application did not return a valid S3 object key.
 
-- name: Request a fresh presigned download URL
+- name: Request a fresh download URL
   ansible.builtin.uri:
     url: >-
       {{ object_storage_smoke_app_url }}/api/files/view?key={{ object_storage_smoke_upload.json.key | urlencode }}
@@ -36,11 +36,23 @@
       - object_storage_smoke_view.json.key == object_storage_smoke_upload.json.key
       - object_storage_smoke_view.json.url is string
       - object_storage_smoke_view.json.url | length > 0
-    fail_msg: The application did not return a fresh S3 download URL.
+      - >-
+        object_storage_smoke_view.json.url is match('^https?://') or
+        object_storage_smoke_public_base_url is match('^https?://')
+    fail_msg: The application did not return a usable object download URL.
 
-- name: Download smoke-test object through the presigned URL
+- name: Resolve object download URL
+  ansible.builtin.set_fact:
+    object_storage_smoke_download_url: >-
+      {{ object_storage_smoke_view.json.url
+         if object_storage_smoke_view.json.url is match('^https?://')
+         else (object_storage_smoke_public_base_url | regex_replace('/+$', ''))
+              ~ '/'
+              ~ (object_storage_smoke_view.json.url | regex_replace('^/+', '')) }}
+
+- name: Download smoke-test object through the returned URL
   ansible.builtin.uri:
-    url: "{{ object_storage_smoke_view.json.url }}"
+    url: "{{ object_storage_smoke_download_url }}"
     method: GET
     status_code: 200
     return_content: true
@@ -52,4 +64,4 @@
   ansible.builtin.assert:
     that:
       - object_storage_smoke_download.content == object_storage_smoke_content
-    fail_msg: The object downloaded through the presigned URL has unexpected content.
+    fail_msg: The object downloaded through the application URL has unexpected content.
