@@ -94,8 +94,8 @@ The workflow validates the tag, runs Ansible in check mode, and then performs th
 
 ## Incremental project steps
 
-The root `playbook.yml` is intentionally short and imports the five files under
-`playbooks/steps/` in project order. To verify the project incrementally, run
+The root `playbook.yml` is intentionally short and imports the five step
+playbooks from the repository root in project order. To verify the project incrementally, run
 `make reset` and then execute `make step-01`, inspect the result, execute
 `make step-02`, and continue in order. Each target runs only its own step and
 therefore assumes that all preceding steps completed successfully.

@@ -4,12 +4,12 @@ EDITOR ?= vi
 ANSIBLE_LIMIT ?= production
 RESET_LIMIT ?= infrastructure
 ANSIBLE = ANSIBLE_CONFIG=ansible.cfg ansible-playbook
-ANSIBLE_CONFIGURE_COMMAND = $(ANSIBLE) -i localhost, -c local playbooks/render_deploy_config.yml
+ANSIBLE_CONFIGURE_COMMAND = $(ANSIBLE) -i localhost, -c local render_deploy_config.yml
 GENERATED_CONFIG = generated.inventory.ini generated.known_hosts
 ANSIBLE_IMAGE_VARS = $(if $(IMAGE_REPOSITORY),-e app_image_repository=$(IMAGE_REPOSITORY)) $(if $(APP_IMAGE_TAG),-e app_image_tag=$(APP_IMAGE_TAG))
 ANSIBLE_ALL_COMMAND = $(ANSIBLE) playbook.yml $(ANSIBLE_IMAGE_VARS)
-ANSIBLE_DEPLOY_COMMAND = $(ANSIBLE) playbooks/deploy.yml --limit "$(ANSIBLE_LIMIT)" $(ANSIBLE_IMAGE_VARS)
-ANSIBLE_ROLLBACK_COMMAND = $(ANSIBLE) playbooks/rollback.yml --limit "$(ANSIBLE_LIMIT)"
+ANSIBLE_DEPLOY_COMMAND = $(ANSIBLE) deploy.yml --limit "$(ANSIBLE_LIMIT)" $(ANSIBLE_IMAGE_VARS)
+ANSIBLE_ROLLBACK_COMMAND = $(ANSIBLE) rollback.yml --limit "$(ANSIBLE_LIMIT)"
 
 # Help
 help:
@@ -46,7 +46,7 @@ ansible-install:
 	ANSIBLE_CONFIG=ansible.cfg ansible-galaxy role install -r requirements.yml --roles-path roles/vendor
 	ANSIBLE_CONFIG=ansible.cfg ansible-galaxy collection install -r requirements.yml
 
-$(GENERATED_CONFIG) &: group_vars/all/vars.yml group_vars/all/vault.yml templates/inventory.ini.j2 templates/known_hosts.j2 playbooks/render_deploy_config.yml .vault-password
+$(GENERATED_CONFIG) &: group_vars/all/vars.yml group_vars/all/vault.yml templates/inventory.ini.j2 templates/known_hosts.j2 render_deploy_config.yml .vault-password
 	$(ANSIBLE_CONFIGURE_COMMAND)
 	touch $(GENERATED_CONFIG)
 
@@ -56,49 +56,49 @@ ansible-configure: $(GENERATED_CONFIG)
 # Project steps
 # Step 1 | Application
 step-01: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_01_application.yml $(ANSIBLE_IMAGE_VARS)
+	$(ANSIBLE) step_01_application.yml $(ANSIBLE_IMAGE_VARS)
 application: step-01
 
 # Step 2 | Database
 step-02: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_02_database.yml $(ANSIBLE_IMAGE_VARS)
+	$(ANSIBLE) step_02_database.yml $(ANSIBLE_IMAGE_VARS)
 database: step-02
 
 # Step 3 | Object storage
 step-03: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_03_object_storage.yml $(ANSIBLE_IMAGE_VARS)
+	$(ANSIBLE) step_03_object_storage.yml $(ANSIBLE_IMAGE_VARS)
 storage: step-03
 
 # Step 4 | Nginx
 step-04: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_04_nginx.yml $(ANSIBLE_IMAGE_VARS)
+	$(ANSIBLE) step_04_nginx.yml $(ANSIBLE_IMAGE_VARS)
 nginx: step-04
 
 nginx-install: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_04_nginx.yml --tags nginx-install
+	$(ANSIBLE) step_04_nginx.yml --tags nginx-install
 
 nginx-proxy: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_04_nginx.yml --tags nginx-proxy
+	$(ANSIBLE) step_04_nginx.yml --tags nginx-proxy
 
 nginx-cache: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_04_nginx.yml --tags nginx-cache
+	$(ANSIBLE) step_04_nginx.yml --tags nginx-cache
 
 nginx-cache-check: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_04_nginx.yml --tags cache-smoke
+	$(ANSIBLE) step_04_nginx.yml --tags cache-smoke
 
 # Step 5 | HTTPS
 step-05: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_05_https.yml
+	$(ANSIBLE) step_05_https.yml
 https: step-05
 
 cert: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_05_https.yml --tags tls-certificate
+	$(ANSIBLE) step_05_https.yml --tags tls-certificate
 
 cert-renewal: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_05_https.yml --tags tls-renewal
+	$(ANSIBLE) step_05_https.yml --tags tls-renewal
 
 cert-https: ansible-configure
-	$(ANSIBLE) playbooks/steps/step_05_https.yml --tags tls-nginx
+	$(ANSIBLE) step_05_https.yml --tags tls-nginx
 
 # Complete scenario
 all: ansible-install ansible-configure
@@ -112,20 +112,20 @@ rollback: ansible-configure
 	$(ANSIBLE_ROLLBACK_COMMAND)
 
 ansible-check: ansible-configure
-	$(ANSIBLE) playbooks/deploy.yml --check --diff --limit "$(ANSIBLE_LIMIT)" $(ANSIBLE_IMAGE_VARS)
+	$(ANSIBLE) deploy.yml --check --diff --limit "$(ANSIBLE_LIMIT)" $(ANSIBLE_IMAGE_VARS)
 
 smoke: ansible-configure
-	$(ANSIBLE) playbooks/verify.yml --tags smoke --limit production
+	$(ANSIBLE) verify.yml --tags smoke --limit production
 
 cache-check: ansible-configure
-	$(ANSIBLE) playbooks/verify.yml --tags cache-smoke --limit production
+	$(ANSIBLE) verify.yml --tags cache-smoke --limit production
 
 tls-check: ansible-configure
-	$(ANSIBLE) playbooks/verify.yml --tags tls-smoke --limit production
+	$(ANSIBLE) verify.yml --tags tls-smoke --limit production
 
 # Maintenance
 reset: ansible-configure
-	$(ANSIBLE) playbooks/reset.yml --tags reset --limit "$(RESET_LIMIT)" -e infrastructure_reset_confirm=true
+	$(ANSIBLE) reset.yml --tags reset --limit "$(RESET_LIMIT)" -e infrastructure_reset_confirm=true
 
 vault-rekey:
 	install -m 600 /dev/null .vault-password.new
