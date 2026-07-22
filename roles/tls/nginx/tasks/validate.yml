@@ -1,0 +1,34 @@
+---
+- name: Validate Nginx TLS settings
+  ansible.builtin.assert:
+    that:
+      - nginx_server_name | default('') | length > 0
+      - nginx_server_name != '_'
+      - tls_nginx_certificate_name | default('') | length > 0
+      - tls_nginx_acme_webroot | default('') | length > 0
+      - nginx_main_config_path | default('') | length > 0
+      - tls_nginx_protocols.split() | difference(['TLSv1.2', 'TLSv1.3']) | length == 0
+      - "'TLSv1.2' in tls_nginx_protocols.split()"
+      - "'TLSv1.3' in tls_nginx_protocols.split()"
+      - tls_nginx_tls12_ciphers | length > 0
+      - tls_nginx_tls13_ciphers | length > 0
+    fail_msg: >-
+      TLS requires a public server name, certificate, ACME webroot, TLS 1.2/1.3,
+      explicit modern cipher allowlists, and an Nginx config path.
+
+- name: Check TLS certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/fullchain.pem"
+  register: tls_nginx_certificate
+
+- name: Check TLS private key
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/privkey.pem"
+  register: tls_nginx_private_key
+
+- name: Require TLS certificate files
+  ansible.builtin.assert:
+    that:
+      - tls_nginx_certificate.stat.exists
+      - tls_nginx_private_key.stat.exists
+    fail_msg: TLS certificate files are missing. Run make cert first.

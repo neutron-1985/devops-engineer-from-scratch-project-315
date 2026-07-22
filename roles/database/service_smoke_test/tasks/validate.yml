@@ -1,0 +1,14 @@
+---
+- name: Validate PostgreSQL smoke-test settings
+  ansible.builtin.assert:
+    that:
+      - database_service_smoke_host | length > 0
+      - database_service_smoke_database | length > 0
+      - database_service_smoke_user | length > 0
+      - database_service_smoke_password | length > 0
+      - database_service_smoke_container_name | length > 0
+      - database_service_smoke_table is match('^[A-Za-z_][A-Za-z0-9_]*$')
+      - database_service_smoke_retries | int > 0
+      - database_service_smoke_delay | int >= 0
+    fail_msg: PostgreSQL smoke test requires valid connection and persistence settings.
+  no_log: true

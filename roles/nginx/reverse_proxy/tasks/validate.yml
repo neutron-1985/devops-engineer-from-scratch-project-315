@@ -1,0 +1,8 @@
+---
+- name: Validate Nginx reverse proxy configuration
+  ansible.builtin.assert:
+    that:
+      - nginx_server_name | default('') | length > 0
+      - nginx_app_upstream | default('') is match('^http://')
+      - nginx_main_config_path | length > 0
+    fail_msg: Nginx reverse proxy requires a main config path, server name, and application upstream.

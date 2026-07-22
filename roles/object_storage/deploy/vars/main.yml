@@ -1,0 +1,14 @@
+---
+minio_config_dir: "{{ minio_root_dir }}/config"
+minio_data_dir: "{{ minio_root_dir }}/data"
+minio_app_policy_file: "{{ minio_config_dir }}/application-policy.json"
+
+rustfs_config_dir: "{{ rustfs_root_dir }}/config"
+rustfs_data_dir: "{{ rustfs_root_dir }}/data"
+rustfs_client_config_dir: "{{ rustfs_root_dir }}/client-config"
+rustfs_app_policy_file: "{{ rustfs_config_dir }}/application-policy.json"
+rustfs_client_uid: "100"
+rustfs_client_gid: "101"
+rustfs_client_home: /home/rc
+rustfs_client_container_config_dir: "{{ rustfs_client_home }}/.config/rc"
+

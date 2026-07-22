@@ -1,0 +1,12 @@
+---
+- name: Validate PostgreSQL smoke-test configuration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Verify PostgreSQL availability and persistence
+  when: not ansible_check_mode
+  block:
+    - name: Verify PostgreSQL connectivity
+      ansible.builtin.include_tasks: connectivity.yml
+
+    - name: Verify PostgreSQL persistence
+      ansible.builtin.include_tasks: persistence.yml

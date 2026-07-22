@@ -1,5 +1,0 @@
----
-tls_smoke_domain: "{{ nginx_server_name }}"
-tls_smoke_http_url: "http://{{ tls_smoke_domain }}/"
-tls_smoke_https_url: "https://{{ tls_smoke_domain }}/"
-tls_smoke_timeout: 15

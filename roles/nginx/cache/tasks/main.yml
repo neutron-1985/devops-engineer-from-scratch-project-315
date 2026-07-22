@@ -1,0 +1,6 @@
+---
+- name: Validate Nginx cache settings
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Configure Nginx caches
+  ansible.builtin.import_tasks: configure.yml

@@ -1,0 +1,6 @@
+---
+object_storage_provider_switch_migration_port: "9100"
+object_storage_provider_switch_state_file: >-
+  {{ app_data_dir }}/.object-storage-state.json
+object_storage_provider_switch_remove_legacy_bulletins: true
+

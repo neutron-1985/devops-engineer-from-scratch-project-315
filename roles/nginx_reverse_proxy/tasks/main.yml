@@ -1,9 +1,0 @@
----
-- name: Validate Nginx settings
-  ansible.builtin.import_tasks: validate.yml
-
-- name: Install Nginx
-  ansible.builtin.import_tasks: install.yml
-
-- name: Configure Nginx reverse proxy
-  ansible.builtin.import_tasks: configure.yml

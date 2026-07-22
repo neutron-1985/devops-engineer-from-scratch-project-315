@@ -1,0 +1,13 @@
+---
+- name: Validate selected object storage provider
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Stop the inactive object storage provider
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/stop_inactive.yml
+
+- name: Deploy the selected object storage provider
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/deploy.yml
+
+- name: Provision resources in the selected object storage provider
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/provision.yml
+

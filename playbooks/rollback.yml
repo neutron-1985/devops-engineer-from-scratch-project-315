@@ -1,0 +1,16 @@
+---
+- name: Roll back application runtime
+  hosts: application
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - rollback
+    - application
+
+  tasks:
+    - name: Restore previous application release
+      ansible.builtin.import_role:
+        name: application/service
+        tasks_from: rollback

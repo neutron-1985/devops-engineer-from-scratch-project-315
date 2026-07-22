@@ -1,0 +1,56 @@
+---
+infrastructure_reset_app_log_dir: /var/log/project-devops-deploy
+
+infrastructure_reset_object_storage_firewall_fact_files:
+  - "{{ ansible_local_facts_dir }}/object_storage_firewall.fact"
+  - "{{ ansible_local_facts_dir }}/object_storage_service_firewall.fact"
+  - "{{ ansible_local_facts_dir }}/minio_firewall.fact"
+  - "{{ ansible_local_facts_dir }}/rustfs_firewall.fact"
+
+infrastructure_reset_object_storage_migration_container_names:
+  - "{{ object_storage_migration_container_name }}"
+  - "{{ object_storage_migration_container_name }}-verify"
+
+infrastructure_reset_minio_container_names:
+  - "{{ minio_container_name }}"
+  - "{{ minio_container_name }}-create-bucket"
+  - "{{ minio_container_name }}-configure-public-downloads"
+  - "{{ minio_container_name }}-configure-user"
+  - "{{ minio_container_name }}-configure-policy"
+  - "{{ minio_container_name }}-attach-policy"
+infrastructure_reset_legacy_minio_volume_name: project-devops-minio-data
+
+infrastructure_reset_rustfs_container_names:
+  - "{{ rustfs_container_name }}"
+  - "{{ rustfs_container_name }}-configure-client"
+  - "{{ rustfs_container_name }}-create-bucket"
+  - "{{ rustfs_container_name }}-configure-public-downloads"
+  - "{{ rustfs_container_name }}-configure-user"
+  - "{{ rustfs_container_name }}-configure-policy"
+  - "{{ rustfs_container_name }}-attach-policy"
+infrastructure_reset_legacy_rustfs_volume_names:
+  - project-devops-rustfs-data
+  - project-devops-rustfs-client-config
+
+infrastructure_reset_docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - docker-ce-rootless-extras
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+infrastructure_reset_docker_paths:
+  - /etc/docker
+  - /var/lib/docker
+  - /var/lib/containerd
+  - /etc/apt/sources.list.d/docker.sources
+  - /etc/apt/sources.list.d/docker.list
+  - /etc/apt/keyrings/docker.asc
+  - /etc/apt/trusted.gpg.d/docker.asc
+
+infrastructure_reset_nginx_packages:
+  - nginx
+  - nginx-common
+  - certbot
+infrastructure_reset_nginx_cache_dir: "{{ nginx_cache_root_dir }}"

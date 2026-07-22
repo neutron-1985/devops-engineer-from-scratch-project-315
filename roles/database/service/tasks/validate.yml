@@ -1,0 +1,11 @@
+---
+- name: Validate PostgreSQL credentials
+  ansible.builtin.assert:
+    that:
+      - postgresql_password | default('') | length >= 16
+      - postgresql_user | default('') | length > 0
+      - (postgresql_user | default('')) is match('^[A-Za-z_][A-Za-z0-9_$]*$')
+      - postgresql_database | default('') | length > 0
+    fail_msg: >-
+      PostgreSQL requires a valid user, database, and password of 16+ characters.
+  no_log: true

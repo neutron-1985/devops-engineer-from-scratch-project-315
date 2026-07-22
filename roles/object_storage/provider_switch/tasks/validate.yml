@@ -1,0 +1,12 @@
+---
+- name: Validate provider switch configuration
+  ansible.builtin.assert:
+    that:
+      - object_storage_provider | default('') in ['minio', 'rustfs']
+      - object_storage_provider_switch_migration_port | int > 0
+      - object_storage_provider_switch_migration_port | int <= 65535
+      - >-
+        object_storage_provider_switch_migration_port | string !=
+        object_storage_api_port | string
+    fail_msg: Select minio or rustfs and configure a distinct migration port.
+

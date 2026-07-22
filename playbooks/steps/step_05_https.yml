@@ -1,0 +1,42 @@
+---
+- name: "Step 5 | Enable Let's Encrypt and HTTPS"
+  hosts: production
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_05
+    - https
+
+  roles:
+    - role: tls/certificate
+      tags: tls-certificate
+    - role: tls/certificate_renewal
+      tags: tls-renewal
+    - role: tls/nginx
+      tags: tls-nginx
+    - role: common/firewall_policy
+      tags: tls-nginx
+      firewall_policy_allowed_tcp_ports:
+        - "{{ nginx_http_port }}"
+        - "{{ nginx_https_port }}"
+      firewall_policy_revoked_tcp_ports:
+        - "{{ app_public_port }}"
+        - "{{ app_container_management_port }}"
+    - role: tls/smoke_test
+      tags: tls-nginx
+
+- name: "Step 5 | Verify application over HTTPS"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_05
+    - https
+    - tls-nginx
+
+  vars:
+    nginx_cache_smoke_base_url: "https://{{ nginx_server_name }}"
+
+  roles:
+    - role: nginx/cache_smoke_test

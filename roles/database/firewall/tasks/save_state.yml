@@ -1,0 +1,16 @@
+---
+- name: Create Ansible local facts directory
+  ansible.builtin.file:
+    path: "{{ ansible_local_facts_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Save current PostgreSQL firewall state as a local fact
+  ansible.builtin.copy:
+    content: "{{ postgresql_allowed_cidrs | unique | sort | to_nice_json }}"
+    dest: "{{ postgresql_fact_file }}"
+    owner: root
+    group: root
+    mode: "0600"

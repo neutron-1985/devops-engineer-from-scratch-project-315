@@ -1,0 +1,55 @@
+---
+- name: Upload smoke-test object through the application
+  ansible.builtin.uri:
+    url: "{{ object_storage_smoke_app_url }}/api/files/upload"
+    method: POST
+    body_format: form-multipart
+    body:
+      file:
+        content: "{{ object_storage_smoke_content }}"
+        filename: "{{ object_storage_smoke_filename }}"
+        mime_type: text/plain
+    status_code: 201
+  register: object_storage_smoke_upload
+
+- name: Validate uploaded object key
+  ansible.builtin.assert:
+    that:
+      - object_storage_smoke_upload.json.key is defined
+      - object_storage_smoke_upload.json.key is match(
+          '^' ~ object_storage_object_prefix ~ '/.+'
+        )
+    fail_msg: The application did not return a valid S3 object key.
+
+- name: Request a fresh presigned download URL
+  ansible.builtin.uri:
+    url: >-
+      {{ object_storage_smoke_app_url }}/api/files/view?key={{ object_storage_smoke_upload.json.key | urlencode }}
+    method: GET
+    status_code: 200
+    return_content: true
+  register: object_storage_smoke_view
+
+- name: Validate refreshed download URL
+  ansible.builtin.assert:
+    that:
+      - object_storage_smoke_view.json.key == object_storage_smoke_upload.json.key
+      - object_storage_smoke_view.json.url is string
+      - object_storage_smoke_view.json.url | length > 0
+    fail_msg: The application did not return a fresh S3 download URL.
+
+- name: Download smoke-test object through the presigned URL
+  ansible.builtin.uri:
+    url: "{{ object_storage_smoke_view.json.url }}"
+    method: GET
+    status_code: 200
+    return_content: true
+  delegate_to: localhost
+  become: false
+  register: object_storage_smoke_download
+
+- name: Verify downloaded object content
+  ansible.builtin.assert:
+    that:
+      - object_storage_smoke_download.content == object_storage_smoke_content
+    fail_msg: The object downloaded through the presigned URL has unexpected content.

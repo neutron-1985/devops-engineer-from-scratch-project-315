@@ -1,3 +1,0 @@
----
-postgresql_password: "{{ vault_postgresql_password }}"
-postgresql_allowed_cidrs: "{{ vault_application_allowed_cidrs }}"

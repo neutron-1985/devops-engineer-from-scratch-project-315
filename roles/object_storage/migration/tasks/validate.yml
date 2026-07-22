@@ -1,0 +1,13 @@
+---
+- name: Validate object storage migration endpoints
+  ansible.builtin.assert:
+    that:
+      - object_storage_migration_source_address | default('') | length > 0
+      - object_storage_migration_target_address | default('') | length > 0
+      - object_storage_migration_source_address != object_storage_migration_target_address
+      - object_storage_migration_bucket | default('') | length > 0
+      - object_storage_migration_access_key | default('') | length >= 3
+      - object_storage_migration_secret_key | default('') | length >= 16
+    fail_msg: Configure distinct source and target endpoints for object migration.
+  no_log: true
+

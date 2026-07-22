@@ -1,0 +1,74 @@
+---
+- name: "Step 4 | Put Nginx in front of the application"
+  hosts: production
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_04
+    - nginx
+
+  roles:
+    - role: nginx/install
+      tags: nginx-install
+    - role: nginx/reverse_proxy
+      tags: nginx-proxy
+    - role: nginx/cache
+      tags: nginx-cache
+    - role: common/firewall_policy
+      tags: nginx-proxy
+      firewall_policy_allowed_tcp_ports:
+        - "{{ nginx_http_port }}"
+      firewall_policy_revoked_tcp_ports:
+        - "{{ app_public_port }}"
+        - "{{ app_container_management_port }}"
+
+- name: "Step 4 | Bind application to the server loopback interface"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_04
+    - nginx
+    - nginx-cache
+
+  vars:
+    app_profile: prod
+    app_storage_backend: s3
+    app_bind_address: 127.0.0.1
+    app_s3_public_url: /uploads
+
+  roles:
+    - role: application/service
+
+- name: "Step 4 | Restrict object storage to the application host"
+  hosts: object_storage
+  remote_user: "{{ vault_inventory.provision_user }}"
+  become: true
+  tags:
+    - step_04
+    - nginx
+    - nginx-cache
+
+  vars:
+    object_storage_api_allowed_cidrs: >-
+      {{ object_storage_application_api_allowed_cidrs }}
+
+  roles:
+    - role: object_storage/firewall
+
+- name: "Step 4 | Verify Nginx caches after restricting object storage"
+  hosts: production
+  remote_user: "{{ vault_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags:
+    - step_04
+    - nginx
+
+  vars:
+    nginx_cache_smoke_base_url: "http://{{ nginx_server_name }}"
+
+  roles:
+    - role: nginx/cache_smoke_test
+      tags: cache-smoke

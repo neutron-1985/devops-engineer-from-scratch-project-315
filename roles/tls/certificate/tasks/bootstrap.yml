@@ -1,0 +1,35 @@
+---
+- name: Verify that Nginx is installed for HTTP-01
+  ansible.builtin.command: nginx -v
+  changed_when: false
+
+- name: Create ACME challenge webroot
+  ansible.builtin.file:
+    path: "{{ tls_certificate_webroot }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0755"
+
+- name: Check whether the TLS certificate already exists
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ tls_certificate_name }}/fullchain.pem"
+  register: tls_certificate_existing
+
+- name: Install HTTP ACME bootstrap configuration
+  ansible.builtin.template:
+    src: nginx-acme-bootstrap.conf.j2
+    dest: "{{ nginx_main_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload Nginx after ACME bootstrap
+  when:
+    - not tls_certificate_existing.stat.exists
+
+- name: Validate HTTP ACME bootstrap configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Apply HTTP ACME bootstrap configuration
+  ansible.builtin.meta: flush_handlers

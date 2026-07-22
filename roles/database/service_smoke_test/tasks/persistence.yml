@@ -1,0 +1,82 @@
+---
+- name: Verify PostgreSQL persistence across a container restart
+  block:
+    - name: Create PostgreSQL persistence smoke-test table
+      community.postgresql.postgresql_query:
+        login_host: "{{ database_service_smoke_host }}"
+        login_port: "{{ database_service_smoke_port }}"
+        login_db: "{{ database_service_smoke_database }}"
+        login_user: "{{ database_service_smoke_user }}"
+        login_password: "{{ database_service_smoke_password }}"
+        query: >-
+          CREATE TABLE IF NOT EXISTS "{{ database_service_smoke_table }}"
+          (marker TEXT PRIMARY KEY);
+      no_log: true
+
+    - name: Store PostgreSQL persistence marker
+      community.postgresql.postgresql_query:
+        login_host: "{{ database_service_smoke_host }}"
+        login_port: "{{ database_service_smoke_port }}"
+        login_db: "{{ database_service_smoke_database }}"
+        login_user: "{{ database_service_smoke_user }}"
+        login_password: "{{ database_service_smoke_password }}"
+        query: >-
+          INSERT INTO "{{ database_service_smoke_table }}" (marker)
+          VALUES (%(marker)s)
+          ON CONFLICT (marker) DO NOTHING;
+        named_args:
+          marker: "{{ database_service_smoke_marker }}"
+      no_log: true
+
+    - name: Restart PostgreSQL container for persistence verification
+      community.docker.docker_container:
+        name: "{{ database_service_smoke_container_name }}"
+        state: started
+        restart: true
+
+    - name: Wait for PostgreSQL after restart
+      community.postgresql.postgresql_ping:
+        login_host: "{{ database_service_smoke_host }}"
+        login_port: "{{ database_service_smoke_port }}"
+        login_db: "{{ database_service_smoke_database }}"
+        login_user: "{{ database_service_smoke_user }}"
+        login_password: "{{ database_service_smoke_password }}"
+      register: database_service_smoke_restarted
+      until: database_service_smoke_restarted.is_available | default(false)
+      retries: "{{ database_service_smoke_retries }}"
+      delay: "{{ database_service_smoke_delay }}"
+      no_log: true
+
+    - name: Read PostgreSQL persistence marker
+      community.postgresql.postgresql_query:
+        login_host: "{{ database_service_smoke_host }}"
+        login_port: "{{ database_service_smoke_port }}"
+        login_db: "{{ database_service_smoke_database }}"
+        login_user: "{{ database_service_smoke_user }}"
+        login_password: "{{ database_service_smoke_password }}"
+        query: >-
+          SELECT COUNT(*) AS marker_count
+          FROM "{{ database_service_smoke_table }}"
+          WHERE marker = %(marker)s;
+        named_args:
+          marker: "{{ database_service_smoke_marker }}"
+      register: database_service_smoke_persisted
+      no_log: true
+
+    - name: Validate PostgreSQL persistence marker
+      ansible.builtin.assert:
+        that:
+          - database_service_smoke_persisted.query_result[0].marker_count | int == 1
+        fail_msg: PostgreSQL did not retain the smoke-test marker after restart.
+
+  always:
+    - name: Remove PostgreSQL persistence smoke-test table
+      community.postgresql.postgresql_query:
+        login_host: "{{ database_service_smoke_host }}"
+        login_port: "{{ database_service_smoke_port }}"
+        login_db: "{{ database_service_smoke_database }}"
+        login_user: "{{ database_service_smoke_user }}"
+        login_password: "{{ database_service_smoke_password }}"
+        query: 'DROP TABLE IF EXISTS "{{ database_service_smoke_table }}";'
+      failed_when: false
+      no_log: true

@@ -1,0 +1,15 @@
+---
+- name: Add deployment users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    append: true
+    state: present
+    shell: /bin/bash
+  loop: "{{ deployment_access_users }}"
+
+- name: Authorize deployment SSH key
+  ansible.posix.authorized_key:
+    user: "{{ vault_inventory.deploy_user }}"
+    key: "{{ vault_inventory.deploy_authorized_key }}"
+    state: present

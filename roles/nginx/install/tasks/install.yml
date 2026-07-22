@@ -1,0 +1,7 @@
+---
+- name: Install Nginx package without starting the service
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    policy_rc_d: 101

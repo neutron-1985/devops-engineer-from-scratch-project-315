@@ -1,0 +1,16 @@
+---
+- name: Add TLS configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_main_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload Nginx after TLS configuration
+
+- name: Validate TLS configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Apply TLS configuration
+  ansible.builtin.meta: flush_handlers

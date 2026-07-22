@@ -1,0 +1,12 @@
+---
+- name: Validate database migration configuration
+  ansible.builtin.import_tasks: validate.yml
+  run_once: true
+
+- name: Prepare database migrations
+  ansible.builtin.import_tasks: prepare.yml
+  run_once: true
+
+- name: Apply database migrations
+  ansible.builtin.import_tasks: migrate.yml
+  run_once: true

@@ -1,0 +1,12 @@
+---
+- name: Create database migration directory
+  ansible.builtin.file:
+    path: "{{ database_migration_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy database migrations
+  ansible.builtin.copy:
+    src: migrations/
+    dest: "{{ database_migration_dir }}/"
+    mode: "0644"

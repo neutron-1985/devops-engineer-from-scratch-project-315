@@ -1,0 +1,5 @@
+---
+postgresql_python_driver_package: python3-psycopg2
+postgresql_container_uid: "70"
+postgresql_container_gid: "70"
+

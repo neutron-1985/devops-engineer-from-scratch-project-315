@@ -1,0 +1,53 @@
+---
+- name: Upload Nginx cache smoke-test object through the application
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/api/files/upload"
+    method: POST
+    body_format: form-multipart
+    body:
+      file:
+        content: "{{ nginx_cache_smoke_content }}"
+        filename: "{{ nginx_cache_smoke_filename }}"
+        mime_type: text/plain
+    status_code: 201
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_upload
+
+- name: Validate uploaded object key
+  ansible.builtin.assert:
+    that:
+      - nginx_cache_smoke_upload.json.key is defined
+      - nginx_cache_smoke_upload.json.key is match('^' ~ object_storage_object_prefix ~ '/.+')
+    fail_msg: The application did not return a valid Nginx cache smoke-test object key.
+
+- name: Request uploaded object through Nginx for the first time
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/uploads/{{ nginx_cache_smoke_upload.json.key }}"
+    method: GET
+    status_code: 200
+    return_content: true
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_upload_first
+
+- name: Request uploaded object through Nginx for the second time
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/uploads/{{ nginx_cache_smoke_upload.json.key }}"
+    method: GET
+    status_code: 200
+    return_content: true
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_upload_second
+
+- name: Verify uploaded object cache hit and content
+  ansible.builtin.assert:
+    that:
+      - nginx_cache_smoke_upload_first.x_cache_status | default('') == 'MISS'
+      - nginx_cache_smoke_upload_second.x_cache_status | default('') == 'HIT'
+      - nginx_cache_smoke_upload_first.content == nginx_cache_smoke_content
+      - nginx_cache_smoke_upload_second.content == nginx_cache_smoke_content
+    fail_msg: >-
+      Nginx did not cache the uploaded object: first={{ nginx_cache_smoke_upload_first.x_cache_status | default('missing') }},
+      second={{ nginx_cache_smoke_upload_second.x_cache_status | default('missing') }}.

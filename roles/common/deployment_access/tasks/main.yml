@@ -1,0 +1,6 @@
+---
+- name: Validate deployment access configuration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Configure deployment access
+  ansible.builtin.import_tasks: users.yml

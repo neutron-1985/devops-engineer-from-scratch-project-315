@@ -1,0 +1,6 @@
+---
+- name: Validate Nginx TLS settings
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Configure HTTPS redirect and secure TLS virtual host
+  ansible.builtin.import_tasks: https.yml

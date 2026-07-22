@@ -1,0 +1,38 @@
+---
+- name: Validate object storage provider switch
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Detect object storage transition state
+  ansible.builtin.import_tasks: detect.yml
+
+- name: Prepare target provider and perform initial synchronization
+  ansible.builtin.import_tasks: prepare_target.yml
+  when: object_storage_provider_switch_provider_changed | bool
+
+- name: Deploy selected provider without provider migration
+  ansible.builtin.include_role:
+    name: object_storage/deploy
+  when: not object_storage_provider_switch_provider_changed | bool
+
+- name: Prepare application for object storage transition
+  ansible.builtin.import_tasks: prepare_application.yml
+  when: object_storage_provider_switch_transition_required | bool
+
+- name: Quiesce application for object storage transition
+  ansible.builtin.import_tasks: quiesce_application.yml
+  when: object_storage_provider_switch_transition_required | bool
+
+- name: Complete provider migration and cut over to target
+  ansible.builtin.import_tasks: cutover.yml
+  when: object_storage_provider_switch_provider_changed | bool
+
+- name: Record active object storage state
+  ansible.builtin.copy:
+    content: >-
+      {{ object_storage_provider_switch_recorded_state
+         | combine({'active_provider': object_storage_provider})
+         | to_nice_json }}
+    dest: "{{ object_storage_provider_switch_state_file }}"
+    mode: "0600"
+  delegate_to: "{{ groups['production'] | first }}"
+

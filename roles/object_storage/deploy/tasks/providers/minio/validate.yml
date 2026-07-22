@@ -1,0 +1,10 @@
+---
+- name: Validate MinIO configuration
+  ansible.builtin.assert:
+    that:
+      - minio_container_uid | string is match('^[1-9][0-9]*$')
+      - minio_container_gid | string is match('^[1-9][0-9]*$')
+    fail_msg: >-
+      MinIO must run with a non-root UID/GID.
+  no_log: true
+

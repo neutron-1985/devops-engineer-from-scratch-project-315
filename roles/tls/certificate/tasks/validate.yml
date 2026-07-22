@@ -1,0 +1,13 @@
+---
+- name: Validate TLS certificate inputs
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_name | length > 0
+      - tls_certificate_admin_email | length > 3
+      - tls_certificate_webroot | length > 0
+      - nginx_server_name | length > 0
+      - nginx_server_name != '_'
+      - nginx_main_config_path | length > 0
+    fail_msg: >-
+      TLS certificate issuance requires a public domain, administrator email,
+      HTTP-01 webroot, and Nginx configuration path.

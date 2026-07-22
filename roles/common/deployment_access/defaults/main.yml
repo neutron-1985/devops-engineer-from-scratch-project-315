@@ -1,0 +1,4 @@
+---
+deployment_access_users:
+  - name: "{{ vault_inventory.deploy_user }}"
+    groups: docker

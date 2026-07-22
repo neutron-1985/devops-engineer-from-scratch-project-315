@@ -1,0 +1,6 @@
+---
+postgresql_image: postgres:17-alpine
+postgresql_database: "{{ database_name }}"
+postgresql_user: "{{ database_username }}"
+postgresql_password: "{{ database_password }}"
+postgresql_port: "{{ database_port }}"

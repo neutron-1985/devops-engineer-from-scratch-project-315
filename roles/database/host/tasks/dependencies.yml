@@ -1,0 +1,7 @@
+---
+- name: Install PostgreSQL Python driver
+  ansible.builtin.apt:
+    name: "{{ postgresql_python_driver_package }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

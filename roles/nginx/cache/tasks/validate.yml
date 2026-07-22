@@ -1,0 +1,13 @@
+---
+- name: Validate Nginx cache configuration
+  ansible.builtin.assert:
+    that:
+      - nginx_main_config_path | length > 0
+      - nginx_app_upstream | default('') is match('^http://')
+      - nginx_static_cache_path | default('') | length > 0
+      - nginx_static_cache_max_size | default('') | length > 0
+      - nginx_uploads_upstream | default('') is match('^https?://')
+      - nginx_uploads_bucket | default('') | length > 0
+      - nginx_uploads_cache_path | default('') | length > 0
+      - nginx_uploads_cache_max_size | default('') | length > 0
+    fail_msg: Nginx cache requires a main config path, cache paths, and object-storage upstream.

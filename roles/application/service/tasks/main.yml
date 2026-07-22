@@ -1,0 +1,9 @@
+---
+- name: Validate application configuration
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Prepare application image
+  ansible.builtin.import_tasks: pull_image.yml
+
+- name: Deploy application container
+  ansible.builtin.import_tasks: deploy_container.yml

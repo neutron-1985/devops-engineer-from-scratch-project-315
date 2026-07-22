@@ -1,0 +1,4 @@
+---
+- name: Stop inactive object storage provider
+  ansible.builtin.include_tasks: providers/{{ object_storage_provider }}/stop_inactive.yml
+

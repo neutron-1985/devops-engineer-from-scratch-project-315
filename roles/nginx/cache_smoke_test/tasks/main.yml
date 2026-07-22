@@ -1,0 +1,16 @@
+---
+- name: Validate smoke-test settings
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Verify Nginx static and upload caches
+  when: not ansible_check_mode
+  block:
+    - name: Verify frontend asset cache
+      ansible.builtin.include_tasks: static.yml
+
+    - name: Verify uploaded object cache
+      ansible.builtin.include_tasks: uploads.yml
+
+  always:
+    - name: Clean up smoke-test object
+      ansible.builtin.include_tasks: cleanup.yml

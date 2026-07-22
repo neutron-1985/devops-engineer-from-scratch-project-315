@@ -1,0 +1,35 @@
+---
+- name: Compare source and target object storage buckets
+  community.docker.docker_container:
+    name: "{{ object_storage_migration_container_name }}-verify"
+    image: "{{ object_storage_client_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    pull: missing
+    network_mode: host
+    command:
+      - diff
+      - "source/{{ object_storage_migration_bucket }}"
+      - "target/{{ object_storage_migration_bucket }}"
+    env:
+      MC_HOST_source: >-
+        {{ 'http://' ~ object_storage_migration_access_key ~ ':' ~
+           object_storage_migration_secret_key ~ '@' ~
+           object_storage_migration_source_address }}
+      MC_HOST_target: >-
+        {{ 'http://' ~ object_storage_migration_access_key ~ ':' ~
+           object_storage_migration_secret_key ~ '@' ~
+           object_storage_migration_target_address }}
+  register: object_storage_migration_diff
+  changed_when: false
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Require identical source and target object storage buckets
+  ansible.builtin.assert:
+    that:
+      - object_storage_migration_diff.status == 0
+      - object_storage_migration_diff.container.Output | default('') | trim | length == 0
+    fail_msg: Object storage migration completed with differences between source and target.
+  when: not ansible_check_mode

@@ -1,0 +1,53 @@
+---
+- name: Request application page through public Nginx
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/"
+    method: GET
+    status_code: 200
+    return_content: true
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_home
+
+- name: Find a frontend asset in the application page
+  ansible.builtin.set_fact:
+    nginx_cache_smoke_asset_paths: >-
+      {{
+        nginx_cache_smoke_home.content
+        | regex_findall('assets/[A-Za-z0-9._/-]+')
+      }}
+
+- name: Validate discovered frontend asset
+  ansible.builtin.assert:
+    that:
+      - nginx_cache_smoke_asset_paths | length > 0
+    fail_msg: The application page does not reference a file under /assets/.
+
+- name: Request frontend asset through Nginx for the first time
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/{{ nginx_cache_smoke_asset_paths | first }}"
+    method: GET
+    status_code: 200
+    return_content: false
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_asset_first
+
+- name: Request frontend asset through Nginx for the second time
+  ansible.builtin.uri:
+    url: "{{ nginx_cache_smoke_base_url }}/{{ nginx_cache_smoke_asset_paths | first }}"
+    method: GET
+    status_code: 200
+    return_content: false
+  delegate_to: localhost
+  become: false
+  register: nginx_cache_smoke_asset_second
+
+- name: Verify frontend asset cache hit
+  ansible.builtin.assert:
+    that:
+      - nginx_cache_smoke_asset_first.x_cache_status | default('') in ['MISS', 'HIT']
+      - nginx_cache_smoke_asset_second.x_cache_status | default('') == 'HIT'
+    fail_msg: >-
+      Nginx did not cache the frontend asset: first={{ nginx_cache_smoke_asset_first.x_cache_status | default('missing') }},
+      second={{ nginx_cache_smoke_asset_second.x_cache_status | default('missing') }}.

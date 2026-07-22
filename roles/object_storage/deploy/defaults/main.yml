@@ -1,0 +1,16 @@
+---
+object_storage_deploy_api_port: "{{ object_storage_api_port }}"
+object_storage_deploy_console_enabled: true
+object_storage_public_downloads: true
+object_storage_healthcheck_retries: 20
+object_storage_healthcheck_delay: 2
+
+minio_image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+minio_container_uid: "10001"
+minio_container_gid: "10001"
+
+rustfs_image: rustfs/rustfs:1.0.0-beta.3
+rustfs_client_image: rustfs/rc:v0.1.27
+rustfs_container_uid: "10001"
+rustfs_container_gid: "10001"
+

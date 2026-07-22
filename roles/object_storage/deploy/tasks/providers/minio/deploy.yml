@@ -1,0 +1,35 @@
+---
+- name: Run MinIO container
+  community.docker.docker_container:
+    name: "{{ minio_container_name }}"
+    image: "{{ minio_image }}"
+    state: started
+    detach: true
+    restart_policy: always
+    pull: missing
+    network_mode: host
+    user: "{{ minio_container_uid }}:{{ minio_container_gid }}"
+    command: server /data
+    volumes:
+      - "{{ minio_data_dir }}:/data"
+    env:
+      MINIO_ROOT_USER: "{{ object_storage_admin_access_key }}"
+      MINIO_ROOT_PASSWORD: "{{ object_storage_admin_secret_key }}"
+      MINIO_ADDRESS: ":{{ object_storage_deploy_api_port }}"
+      MINIO_CONSOLE_ADDRESS: >-
+        {{ object_storage_console_bind_address }}:{{ object_storage_console_port }}
+      MINIO_BROWSER: >-
+        {{ 'on' if object_storage_deploy_console_enabled | bool else 'off' }}
+  no_log: true
+
+- name: Wait until MinIO is ready
+  ansible.builtin.uri:
+    url: >-
+      http://127.0.0.1:{{ object_storage_deploy_api_port }}/minio/health/ready
+    status_code: 200
+  register: object_storage_deploy_healthcheck
+  retries: "{{ object_storage_healthcheck_retries }}"
+  delay: "{{ object_storage_healthcheck_delay }}"
+  until: object_storage_deploy_healthcheck.status == 200
+  when: not ansible_check_mode
+

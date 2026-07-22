@@ -1,0 +1,10 @@
+---
+- name: Validate RustFS configuration
+  ansible.builtin.assert:
+    that:
+      - rustfs_container_uid | string is match('^[1-9][0-9]*$')
+      - rustfs_container_gid | string is match('^[1-9][0-9]*$')
+    fail_msg: >-
+      RustFS must run with a non-root UID/GID.
+  no_log: true
+
