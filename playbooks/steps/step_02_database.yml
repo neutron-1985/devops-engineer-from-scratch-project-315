@@ -8,7 +8,7 @@
     - database
 
   roles:
-    - role: vendor/geerlingguy.docker
+    - role: geerlingguy.docker
     - role: common/deployment_access
     - role: common/firewall_policy
     - role: database/host

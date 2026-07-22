@@ -11,7 +11,7 @@
 
 - name: Install Certbot and issue certificates
   ansible.builtin.include_role:
-    name: vendor/geerlingguy.certbot
+    name: geerlingguy.certbot
     apply:
       tags:
         - tls-certificate
