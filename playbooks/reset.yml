@@ -9,7 +9,7 @@
     reset_scope: all
 
   roles:
-    - role: environment_reset
+    - role: common/environment_reset
       when: reset_scope == 'environment'
-    - role: infrastructure_reset
+    - role: common/infrastructure_reset
       when: reset_scope == 'all'

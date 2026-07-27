@@ -17,7 +17,7 @@
 
     - name: Reconcile shared gateway firewall
       ansible.builtin.import_role:
-        name: firewall_policy
+        name: common/firewall_policy
       vars:
         firewall_policy_allowed_tcp_ports:
           - "{{ nginx_http_port }}"

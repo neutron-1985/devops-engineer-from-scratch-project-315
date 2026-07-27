@@ -20,7 +20,7 @@
       tags: tls-renewal
     - role: tls/nginx
       tags: tls-nginx
-    - role: firewall_policy
+    - role: common/firewall_policy
       tags: tls-nginx
       firewall_policy_allowed_tcp_ports:
         - "{{ nginx_http_port }}"

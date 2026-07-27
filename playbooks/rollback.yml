@@ -13,5 +13,5 @@
   tasks:
     - name: Restore previous application release
       ansible.builtin.import_role:
-        name: app_service
+        name: application/service
         tasks_from: rollback

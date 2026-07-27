@@ -4,12 +4,12 @@
 
 - name: Stop source object storage provider
   ansible.builtin.include_role:
-    name: storage_deploy
+    name: object_storage/deploy
     tasks_from: stop_inactive
 
 - name: Switch target provider to primary S3 port
   ansible.builtin.include_role:
-    name: storage_deploy
+    name: object_storage/deploy
     tasks_from: deploy
   vars:
     object_storage_deploy_api_port: "{{ object_storage_api_port }}"

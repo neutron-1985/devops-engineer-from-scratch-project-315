@@ -9,11 +9,11 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
+    - role: common/deployment_access
+    - role: common/firewall_policy
       firewall_policy_allowed_tcp_ports:
         - "{{ app_public_port }}"
-    - role: app_host
+    - role: application/host
 
 - name: "Step 1 | Deploy standalone application"
   hosts: application
@@ -30,4 +30,4 @@
     app_bind_address: 0.0.0.0
 
   roles:
-    - role: app_service
+    - role: application/service

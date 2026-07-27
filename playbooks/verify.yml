@@ -9,8 +9,8 @@
     - smoke
 
   roles:
-    - role: db_application_smoke_test
-    - role: storage_smoke_test
+    - role: database/application_smoke_test
+    - role: object_storage/smoke_test
 
 - name: Verify environment Nginx caches
   hosts: application

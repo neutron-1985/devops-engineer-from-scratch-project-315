@@ -9,9 +9,9 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
-    - role: app_host
+    - role: common/deployment_access
+    - role: common/firewall_policy
+    - role: application/host
 
   tasks:
     - name: Install Nginx without replacing the active gateway configuration
@@ -35,8 +35,8 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
+    - role: common/deployment_access
+    - role: common/firewall_policy
 
 - name: Reconcile shared object-storage host prerequisites
   hosts: object_storage
@@ -48,5 +48,5 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
+    - role: common/deployment_access
+    - role: common/firewall_policy

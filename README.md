@@ -218,12 +218,12 @@ local storage. Step 3 moves files to S3, step 4 changes the public entry point
 to HTTP Nginx, and step 5 enables HTTPS.
 
 The database stage follows the same role-oriented structure as the Nginx and
-TLS stages. `db_host` prepares host dependencies and persistent storage,
-`db_firewall` restricts PostgreSQL access, and `db_service` manages
-the container and credentials. `db_service_smoke_test` verifies a marker
-survives a PostgreSQL container restart. `db_migration` applies the
-Flyway schema before `app_service`, while
-`db_application_smoke_test` checks
+TLS stages. `database/host` prepares host dependencies and persistent storage,
+`database/firewall` restricts PostgreSQL access, and `database/service` manages
+the container and credentials. `database/service_smoke_test` verifies a marker
+survives a PostgreSQL container restart. `database/migration` applies the
+Flyway schema before `application/service`, while
+`database/application_smoke_test` checks
 the migrated relation and application readiness. Each role exposes its normal
 workflow through `tasks/main.yml`; the step playbook only orders the roles.
 
@@ -285,17 +285,19 @@ keeps its seven identity values in `environments/<name>/inventory/group_vars/all
 The encrypted
 `environments/_shared/inventory/inventory.vault.yml` contains the
 real host topology and named `dev`, `stage`, and `prod` secret sections; shared
-vars select one by `environment_name`. Before every operation, `make prepare-inventory` renders host groups, addresses, and SSH ports into each ignored environment `hosts.yml` with mode `0600`. Those generated files contain no application credentials and activate their adjacent `group_vars`. Ansible continues to read secret values directly from Vault. The `ssh_client` role creates
+vars select one by `environment_name`. Before every operation, `make prepare-inventory` renders host groups, addresses, and SSH ports into each ignored environment `hosts.yml` with mode `0600`. Those generated files contain no application credentials and activate their adjacent `group_vars`. Ansible continues to read secret values directly from Vault. The `common/ssh_client` role creates
 `environments/_shared/runtime/known_hosts` locally with mode `0600` before the
 first SSH connection.
 
 Project roles are grouped by domain under `roles/`: `common`, `application`,
-`database`, `object_storage`, `nginx`, `tls`, and `vendor`. Application, database, and object-storage roles use globally unique prefixed
-names such as `app_service`, `db_service`, and `storage_deploy`. Nginx and TLS
-roles retain path-qualified names such as `nginx/cache` and `tls/certificate`.
-The names of role variables remain fully prefixed because Ansible variables
-share a play-level namespace. Galaxy roles are installed under `roles/vendor`
-and keep their upstream names inside that directory.
+`database`, `object_storage`, `nginx`, `tls`, and `vendor`. Playbooks use
+path-qualified role names such as `database/service` and `tls/certificate`; the
+directory provides the namespace, so role directories do not repeat their
+domain prefix. The `playbooks/steps/roles` symlink exposes the same role root
+to runners that override the project Ansible configuration. Role variables
+remain fully prefixed because Ansible variables share a play-level namespace.
+Galaxy roles are installed under `roles/vendor` and keep their upstream names
+inside that directory.
 
 Each service step prepares its own target hosts before starting containers.
 Step 1 provisions application hosts, step 2 provisions database hosts, and
@@ -335,7 +337,7 @@ The Nginx implementation is split into four one-way learning stages:
    object-storage configuration.
 3. The `nginx-cache` substage invokes `nginx/cache` to add cache zones and the
    `/assets/` and `/uploads/` locations, switches the application to
-   `/uploads/`, and invokes `storage_firewall` to restrict the storage
+   `/uploads/`, and invokes `object_storage/firewall` to restrict the storage
    API to the application host. Each Nginx role renders a complete readable
    snapshot of its stage; no earlier role contains extension points for a
    later one.
@@ -406,7 +408,7 @@ independently with:
 make cache-check
 ```
 
-The shared `firewall_policy` role exposes `8080` after step 1, replaces it with public
+The shared `common/firewall_policy` role exposes `8080` after step 1, replaces it with public
 HTTP port `80` after Nginx is ready in step 4, and adds `443` only after HTTPS
 is configured in step 5. Nginx and TLS roles do not manage UFW themselves.
 
@@ -414,11 +416,11 @@ is configured in step 5. Nginx and TLS roles do not manage UFW themselves.
 
 Object storage responsibilities are split between five roles:
 
-- `storage_firewall` manages access to the storage API;
-- `storage_deploy` prepares and runs MinIO or RustFS;
-- `storage_migration` copies and verifies data between S3 endpoints;
-- `storage_provider_switch` coordinates application downtime and cutover;
-- `storage_smoke_test` verifies application uploads, downloads, and
+- `object_storage/firewall` manages access to the storage API;
+- `object_storage/deploy` prepares and runs MinIO or RustFS;
+- `object_storage/migration` copies and verifies data between S3 endpoints;
+- `object_storage/provider_switch` coordinates application downtime and cutover;
+- `object_storage/smoke_test` verifies application uploads, downloads, and
   restricted application credentials.
 
 Select the implementation with `object_storage_provider` in
@@ -482,7 +484,7 @@ credentials as `STORAGE_S3_*` environment variables.
 
 ## Object storage verification
 
-Step 3 runs `storage_smoke_test` after the application becomes ready.
+Step 3 runs `object_storage/smoke_test` after the application becomes ready.
 It uploads a text object through `POST /api/files/upload`, requests a fresh
 presigned URL from `GET /api/files/view`, downloads the object from the Ansible
 controller, compares its contents, and verifies that the application

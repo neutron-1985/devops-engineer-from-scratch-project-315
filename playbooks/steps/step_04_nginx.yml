@@ -22,7 +22,7 @@
       tags: nginx-proxy
     - role: nginx/cache
       tags: nginx-cache
-    - role: firewall_policy
+    - role: common/firewall_policy
       tags: nginx-proxy
       firewall_policy_allowed_tcp_ports:
         - "{{ nginx_http_port }}"
@@ -48,7 +48,7 @@
     app_s3_public_url: /uploads
 
   roles:
-    - role: app_service
+    - role: application/service
 
 - name: "Step 4 | Restrict object storage to the application host"
   hosts: object_storage
@@ -65,7 +65,7 @@
       {{ object_storage_application_api_allowed_cidrs }}
 
   roles:
-    - role: storage_firewall
+    - role: object_storage/firewall
 
 - name: "Step 4 | Verify Nginx caches after restricting object storage"
   hosts: application

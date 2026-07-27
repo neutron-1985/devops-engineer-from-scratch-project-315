@@ -9,10 +9,10 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
-    - role: db_host
-    - role: db_firewall
+    - role: common/deployment_access
+    - role: common/firewall_policy
+    - role: database/host
+    - role: database/firewall
 
 - name: "Step 2 | Run PostgreSQL container"
   hosts: database
@@ -24,8 +24,8 @@
     - database
 
   roles:
-    - role: db_service
-    - role: db_service_smoke_test
+    - role: database/service
+    - role: database/service_smoke_test
 
 - name: "Step 2 | Migrate database and switch application to production"
   hosts: application
@@ -43,6 +43,6 @@
     app_bind_address: 0.0.0.0
 
   roles:
-    - role: db_migration
-    - role: app_service
-    - role: db_application_smoke_test
+    - role: database/migration
+    - role: application/service
+    - role: database/application_smoke_test

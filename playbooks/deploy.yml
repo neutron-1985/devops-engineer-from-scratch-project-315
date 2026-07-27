@@ -9,7 +9,7 @@
   tags: deploy
 
   roles:
-    - role: db_migration
+    - role: database/migration
       when: app_profile == 'prod'
 
 - name: Deploy application runtime
@@ -25,7 +25,7 @@
     app_require_immutable_image_tag: true
 
   roles:
-    - role: app_service
+    - role: application/service
 
 - name: Verify production-like runtime deployment
   hosts: application
@@ -35,9 +35,9 @@
   gather_facts: false
 
   roles:
-    - role: db_application_smoke_test
+    - role: database/application_smoke_test
       when: app_profile == 'prod'
-    - role: storage_smoke_test
+    - role: object_storage/smoke_test
       object_storage_smoke_public_base_url: "https://{{ nginx_server_name }}"
       when: app_storage_backend == 's3'
     - role: nginx/cache_smoke_test

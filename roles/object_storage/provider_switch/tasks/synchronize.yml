@@ -1,7 +1,7 @@
 ---
 - name: Synchronize object storage data
   ansible.builtin.include_role:
-    name: storage_migration
+    name: object_storage/migration
   vars:
     object_storage_migration_source_address: >-
       127.0.0.1:{{ object_storage_api_port }}

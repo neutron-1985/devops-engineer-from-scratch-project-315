@@ -1,7 +1,7 @@
 ---
 - name: Deploy and provision migration target on temporary S3 port
   ansible.builtin.include_role:
-    name: storage_deploy
+    name: object_storage/deploy
     tasks_from: deploy
   vars:
     object_storage_deploy_api_port: "{{ object_storage_provider_switch_migration_port }}"

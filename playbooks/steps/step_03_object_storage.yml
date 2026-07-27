@@ -9,16 +9,16 @@
 
   roles:
     - role: geerlingguy.docker
-    - role: deployment_access
-    - role: firewall_policy
-    - role: storage_firewall
+    - role: common/deployment_access
+    - role: common/firewall_policy
+    - role: object_storage/firewall
       object_storage_api_allowed_cidrs: >-
         {{ object_storage_public_api_allowed_cidrs }}
 
   tasks:
     - name: Prepare selected object storage provider configuration
       ansible.builtin.import_role:
-        name: storage_deploy
+        name: object_storage/deploy
         tasks_from: prepare
 
 - name: "Step 3 | Deploy S3-compatible object storage service"
@@ -30,7 +30,7 @@
     - storage
 
   roles:
-    - role: storage_provider_switch
+    - role: object_storage/provider_switch
 
 - name: "Step 3 | Switch production application to S3"
   hosts: application
@@ -52,11 +52,11 @@
          | default(false) | bool }}
 
   roles:
-    - role: app_service
-    - role: storage_smoke_test
+    - role: application/service
+    - role: object_storage/smoke_test
 
   post_tasks:
     - name: Complete the application S3 transition
       ansible.builtin.import_role:
-        name: storage_provider_switch
+        name: object_storage/provider_switch
         tasks_from: complete
