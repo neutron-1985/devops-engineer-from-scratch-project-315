@@ -103,35 +103,45 @@ tags that do not identify a commit.
 
 ## GitHub Actions release
 
-The `Release` workflow runs after a push to `main` that changes one or more
-environment `vars.yml` files.
+After a pull request reaches `main`, the `Release` workflow runs when one or
+more environment `vars.yml` files changed.
 
-Push runs use the commit message as their title. For tag promotion, use a
-subject such as `release(stage): deploy sha-938dd8c`.
+The changed inventories are evaluated in fixed priority order:
 
-1. `dorny/paths-filter` identifies the changed environments.
-2. A matrix creates an independent job for each environment.
-3. Each job reconciles infrastructure, checks the deployment, and deploys the
-   tag from inventory.
-4. A production job waits for approval through the `prod` GitHub Environment.
+```text
+dev → stage → prod
+```
+
+The first changed environment becomes the release source. Its committed
+`app_image_tag` is used for that environment and every higher environment in
+the same promotion run:
+
+| Changed inventory | Release source | Deployment chain |
+|---|---|---|
+| `dev` (with or without other changes) | tag from `dev` | `dev → stage → prod` |
+| `stage`, but not `dev` | tag from `stage` | `stage → prod` |
+| only `prod` | tag from `prod` | `prod` |
+
+For example, if both `dev` and `stage` files changed, the workflow deliberately
+uses the tag from `dev` for the complete chain. The selected tag is passed as
+an explicit Ansible override; the per-environment tags remain independent in
+their own `vars.yml` files.
+
+Each deployment checks out the same triggering commit. A later push cannot
+replace the selected tag in a running or approval-waiting workflow.
+
+Configure required reviewers on the `stage` and `prod` GitHub Environments.
+This creates approval gates before the workflow continues to those higher
+environments. The source environment starts without an additional workflow
+input.
 
 Configure these secrets in the `dev`, `stage`, and `prod` GitHub Environments:
 
 - `ANSIBLE_VAULT_PASSWORD`
 - `DEPLOY_SSH_KEY`
 
-The workflow can also be started manually for one selected environment. It
-still reads the image tag from that environment inventory.
-
-Promote a verified tag through separate reviewed changes:
-
-```text
-dev vars.yml → verify dev → stage vars.yml → verify stage → prod vars.yml
-```
-
-If several inventories change in one push, their matrix jobs run one at a time
-to avoid concurrent changes on shared hosts. Separate reviewed changes preserve
-the promotion sequence explicitly in Git history.
+Release runs are serialized and are not cancelled while deployment or approval
+is in progress.
 
 ## Provisioning stages
 

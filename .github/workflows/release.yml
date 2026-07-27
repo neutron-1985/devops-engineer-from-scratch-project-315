@@ -1,11 +1,6 @@
 name: Release
 
-run-name: >-
-  ${{
-    github.event_name == 'workflow_dispatch'
-    && format('Release {0} from inventory', inputs.target_environment)
-    || github.event.head_commit.message
-  }}
+run-name: ${{ github.event.head_commit.message }}
 
 on:
   push:
@@ -15,17 +10,6 @@ on:
       - environments/dev/inventory/group_vars/all/vars.yml
       - environments/stage/inventory/group_vars/all/vars.yml
       - environments/prod/inventory/group_vars/all/vars.yml
-  workflow_dispatch:
-    inputs:
-      target_environment:
-        description: Environment to reconcile and deploy from its inventory
-        required: true
-        default: dev
-        type: choice
-        options:
-          - dev
-          - stage
-          - prod
 
 permissions:
   contents: read
@@ -35,23 +19,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  detect:
-    name: Detect changed environments
+  plan:
+    name: Select release source
     runs-on: ubuntu-latest
     outputs:
-      environments: >-
-        ${{ github.event_name == 'workflow_dispatch'
-            && format('["{0}"]', inputs.target_environment)
-            || steps.changes.outputs.changes }}
+      source_environment: >-
+        ${{ steps.changes.outputs.dev == 'true' && 'dev'
+            || steps.changes.outputs.stage == 'true' && 'stage'
+            || 'prod' }}
+      image_tag: ${{ steps.image.outputs.image_tag }}
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Detect changed environment inventory
+      - name: Detect changed environment inventories
         id: changes
-        if: github.event_name == 'push'
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
         with:
           filters: |
@@ -62,62 +46,57 @@ jobs:
             prod:
               - environments/prod/inventory/group_vars/all/vars.yml
 
-
-  deploy:
-    name: Reconcile and deploy ${{ matrix.environment }}
-    needs: detect
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        environment: ${{ fromJSON(needs.detect.outputs.environments) }}
-    environment: ${{ matrix.environment }}
-    concurrency:
-      group: deploy-${{ matrix.environment }}
-      cancel-in-progress: false
-    env:
-      ENVIRONMENT: ${{ matrix.environment }}
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install Ansible
-        run: python -m pip install ansible
-
-      - name: Install Ansible dependencies
-        run: make ansible-install
-
-      - name: Configure Ansible Vault
+      - name: Read image tag from prioritized inventory
+        id: image
         env:
-          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-        run: |
-          test -n "$ANSIBLE_VAULT_PASSWORD"
-          install -m 600 /dev/null .vault-password
-          printf "%s\n" "$ANSIBLE_VAULT_PASSWORD" > .vault-password
+          SOURCE_ENVIRONMENT: >-
+            ${{ steps.changes.outputs.dev == 'true' && 'dev'
+                || steps.changes.outputs.stage == 'true' && 'stage'
+                || 'prod' }}
+        run: >-
+          printf 'image_tag=%s\n'
+          "$(sed -n 's/^app_image_tag:[[:space:]]*//p'
+          "environments/${SOURCE_ENVIRONMENT}/inventory/group_vars/all/vars.yml")"
+          >> "$GITHUB_OUTPUT"
 
-      - name: Load SSH key
-        uses: webfactory/ssh-agent@v0.10.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+  deploy-dev:
+    name: Deploy dev
+    needs: plan
+    if: needs.plan.outputs.source_environment == 'dev'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      target_environment: dev
+      image_tag: ${{ needs.plan.outputs.image_tag }}
+    secrets: inherit
 
-      - name: Reconcile infrastructure
-        run: make infra-apply ENVIRONMENT="$ENVIRONMENT"
+  deploy-stage:
+    name: Deploy stage
+    needs:
+      - plan
+      - deploy-dev
+    if: >-
+      ${{ always()
+      && needs.plan.result == 'success'
+      && (needs.deploy-dev.result == 'success' || needs.deploy-dev.result == 'skipped')
+      && (needs.plan.outputs.source_environment == 'dev'
+          || needs.plan.outputs.source_environment == 'stage') }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      target_environment: stage
+      image_tag: ${{ needs.plan.outputs.image_tag }}
+    secrets: inherit
 
-      - name: Check deployment
-        run: make ansible-check ENVIRONMENT="$ENVIRONMENT"
-
-      - name: Deploy inventory image
-        run: make deploy ENVIRONMENT="$ENVIRONMENT"
-
-      - name: Record release summary
-        if: success()
-        run: |
-          {
-            echo "## Environment reconciled and deployed"
-            echo
-            echo "| Field | Value |"
-            echo "|---|---|"
-            echo "| Environment | $ENVIRONMENT |"
-            echo "| Configuration commit | $GITHUB_SHA |"
-          } >> "$GITHUB_STEP_SUMMARY"
+  deploy-prod:
+    name: Deploy prod
+    needs:
+      - plan
+      - deploy-stage
+    if: >-
+      ${{ always()
+      && needs.plan.result == 'success'
+      && (needs.deploy-stage.result == 'success' || needs.deploy-stage.result == 'skipped') }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      target_environment: prod
+      image_tag: ${{ needs.plan.outputs.image_tag }}
+    secrets: inherit
