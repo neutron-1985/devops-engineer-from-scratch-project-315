@@ -1,4 +1,4 @@
 ---
 deployment_access_users:
-  - name: "{{ vault_inventory.deploy_user }}"
+  - name: "{{ ssh_inventory.deploy_user }}"
     groups: docker

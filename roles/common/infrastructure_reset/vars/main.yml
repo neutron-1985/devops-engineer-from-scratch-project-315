@@ -1,34 +1,40 @@
 ---
 infrastructure_reset_app_log_dir: /var/log/project-devops-deploy
 
-infrastructure_reset_object_storage_firewall_fact_files:
-  - "{{ ansible_local_facts_dir }}/object_storage_firewall.fact"
-  - "{{ ansible_local_facts_dir }}/object_storage_service_firewall.fact"
-  - "{{ ansible_local_facts_dir }}/minio_firewall.fact"
-  - "{{ ansible_local_facts_dir }}/rustfs_firewall.fact"
-
+infrastructure_reset_object_storage_environment_suffixes:
+  - -dev
+  - -stage
+  - ""
+infrastructure_reset_object_storage_provider_container_bases:
+  - project-devops-minio
+  - project-devops-rustfs
+infrastructure_reset_object_storage_helper_suffixes:
+  - ""
+  - -configure-client
+  - -create-bucket
+  - -configure-public-downloads
+  - -configure-user
+  - -configure-policy
+  - -attach-policy
+infrastructure_reset_object_storage_service_container_names: >-
+  {{ infrastructure_reset_object_storage_provider_container_bases
+     | product(infrastructure_reset_object_storage_environment_suffixes)
+     | map('join')
+     | product(infrastructure_reset_object_storage_helper_suffixes)
+     | map('join')
+     | list }}
 infrastructure_reset_object_storage_migration_container_names:
-  - "{{ object_storage_migration_container_name }}"
-  - "{{ object_storage_migration_container_name }}-verify"
-
-infrastructure_reset_minio_container_names:
-  - "{{ minio_container_name }}"
-  - "{{ minio_container_name }}-create-bucket"
-  - "{{ minio_container_name }}-configure-public-downloads"
-  - "{{ minio_container_name }}-configure-user"
-  - "{{ minio_container_name }}-configure-policy"
-  - "{{ minio_container_name }}-attach-policy"
-infrastructure_reset_legacy_minio_volume_name: project-devops-minio-data
-
-infrastructure_reset_rustfs_container_names:
-  - "{{ rustfs_container_name }}"
-  - "{{ rustfs_container_name }}-configure-client"
-  - "{{ rustfs_container_name }}-create-bucket"
-  - "{{ rustfs_container_name }}-configure-public-downloads"
-  - "{{ rustfs_container_name }}-configure-user"
-  - "{{ rustfs_container_name }}-configure-policy"
-  - "{{ rustfs_container_name }}-attach-policy"
-infrastructure_reset_legacy_rustfs_volume_names:
+  - project-devops-object-storage-dev-migration
+  - project-devops-object-storage-dev-migration-verify
+  - project-devops-object-storage-stage-migration
+  - project-devops-object-storage-stage-migration-verify
+  - project-devops-object-storage-migration
+  - project-devops-object-storage-migration-verify
+infrastructure_reset_object_storage_container_names: >-
+  {{ infrastructure_reset_object_storage_service_container_names
+     + infrastructure_reset_object_storage_migration_container_names }}
+infrastructure_reset_legacy_object_storage_volume_names:
+  - project-devops-minio-data
   - project-devops-rustfs-data
   - project-devops-rustfs-client-config
 

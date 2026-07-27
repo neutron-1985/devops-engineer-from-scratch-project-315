@@ -1,0 +1,12 @@
+---
+- name: Create SSH runtime directory
+  ansible.builtin.file:
+    path: "{{ ssh_client_runtime_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Render trusted SSH host keys
+  ansible.builtin.template:
+    src: known_hosts.j2
+    dest: "{{ ssh_client_known_hosts_path }}"
+    mode: "0600"

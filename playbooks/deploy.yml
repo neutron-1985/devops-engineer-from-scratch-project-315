@@ -1,39 +1,44 @@
 ---
-- name: Migrate production database
-  hosts: production
-  remote_user: "{{ vault_inventory.deploy_user }}"
+- name: Migrate production-like runtime databases
+  hosts: application
+  serial: 1
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
   any_errors_fatal: true
   tags: deploy
 
   roles:
-    - role: database/migration
+    - role: db_migration
+      when: app_profile == 'prod'
 
-- name: Deploy application
+- name: Deploy application runtime
   hosts: application
-  remote_user: "{{ vault_inventory.deploy_user }}"
+  serial: 1
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
+  any_errors_fatal: true
   tags: deploy
 
   vars:
-    app_profile: "{{ 'prod' if 'production' in group_names else 'dev' }}"
-    app_storage_backend: "{{ 's3' if 'production' in group_names else 'local' }}"
-    app_s3_public_url: "{{ '/uploads' if 'production' in group_names else '' }}"
     app_require_immutable_image_tag: true
 
   roles:
-    - role: application/service
+    - role: app_service
 
-- name: Verify production deployment
-  hosts: production
-  remote_user: "{{ vault_inventory.deploy_user }}"
+- name: Verify production-like runtime deployment
+  hosts: application
+  serial: 1
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
 
   roles:
-    - role: database/application_smoke_test
-    - role: object_storage/smoke_test
+    - role: db_application_smoke_test
+      when: app_profile == 'prod'
+    - role: storage_smoke_test
       object_storage_smoke_public_base_url: "https://{{ nginx_server_name }}"
+      when: app_storage_backend == 's3'
     - role: nginx/cache_smoke_test
+      when: app_storage_backend == 's3'

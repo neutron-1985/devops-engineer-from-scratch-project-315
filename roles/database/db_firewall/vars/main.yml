@@ -1,0 +1,5 @@
+---
+postgresql_firewall_comment: "project-devops-postgresql{{ environment_hyphen_suffix }}"
+postgresql_firewall_fact_name: "postgresql_firewall{{ environment_hyphen_suffix }}"
+postgresql_previous_allowed_cidrs: >-
+  {{ ansible_local[postgresql_firewall_fact_name] | default([]) }}

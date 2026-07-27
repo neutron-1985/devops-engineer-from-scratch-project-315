@@ -2,9 +2,9 @@
 - name: Require distinct provisioning and deployment users
   ansible.builtin.assert:
     that:
-      - vault_inventory.provision_user | default('') | length > 0
-      - vault_inventory.deploy_user | default('') | length > 0
-      - (vault_inventory.deploy_user | default('')) != (vault_inventory.provision_user | default(''))
+      - ssh_inventory.provision_user | default('') | length > 0
+      - ssh_inventory.deploy_user | default('') | length > 0
+      - (ssh_inventory.deploy_user | default('')) != (ssh_inventory.provision_user | default(''))
     fail_msg: >-
       deployment_access requires non-empty and distinct
-      vault_inventory.provision_user and vault_inventory.deploy_user values.
+      ssh_inventory.provision_user and ssh_inventory.deploy_user values.

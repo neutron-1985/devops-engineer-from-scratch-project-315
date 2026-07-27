@@ -1,0 +1,33 @@
+---
+- name: Require explicit environment reset confirmation
+  ansible.builtin.assert:
+    that:
+      - environment_reset_confirm | bool
+    fail_msg: >-
+      Environment reset destroys the selected application, database data,
+      bucket, credentials, and caches. Set environment_reset_confirm=true
+      to continue.
+
+- name: Check whether Docker daemon is available
+  ansible.builtin.command:
+    argv:
+      - docker
+      - info
+      - --format
+      - "{{ '{{' }}.ServerVersion{{ '}}' }}"
+  register: environment_reset_docker_info
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: Reset selected application resources
+  ansible.builtin.include_tasks: application.yml
+  when: "'application' in group_names"
+
+- name: Reset selected PostgreSQL resources
+  ansible.builtin.include_tasks: database.yml
+  when: "'database' in group_names"
+
+- name: Reset selected object-storage resources
+  ansible.builtin.include_tasks: object_storage.yml
+  when: "'object_storage' in group_names"

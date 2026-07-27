@@ -1,27 +1,23 @@
 ---
 - name: "Step 1 | Prepare application host"
   hosts: application
-  remote_user: "{{ vault_inventory.provision_user }}"
+  remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
   tags:
     - step_01
     - application
 
   roles:
-    - role: vendor/geerlingguy.docker
-    - role: common/deployment_access
-    - role: common/firewall_policy
+    - role: geerlingguy.docker
+    - role: deployment_access
+    - role: firewall_policy
       firewall_policy_allowed_tcp_ports:
         - "{{ app_public_port }}"
-      firewall_policy_revoked_tcp_ports:
-        - "{{ nginx_http_port }}"
-        - "{{ nginx_https_port }}"
-        - "{{ app_container_management_port }}"
-    - role: application/host
+    - role: app_host
 
 - name: "Step 1 | Deploy standalone application"
   hosts: application
-  remote_user: "{{ vault_inventory.deploy_user }}"
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
   tags:
@@ -34,4 +30,4 @@
     app_bind_address: 0.0.0.0
 
   roles:
-    - role: application/service
+    - role: app_service

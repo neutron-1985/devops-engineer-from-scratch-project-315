@@ -1,26 +1,45 @@
 name: Deploy
 
+run-name: "Deploy ${{ inputs.image_tag }} to ${{ inputs.target_environment }}"
+
 on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: Immutable Docker image tag
+        required: true
+        type: string
+      target_environment:
+        description: Runtime environment to deploy
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       image_tag:
         description: Docker image tag, for example sha-425dd32
         required: true
         type: string
+      target_environment:
+        description: Runtime environment to deploy
+        required: true
+        default: stage
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: production-deploy
+  group: deploy-${{ inputs.target_environment }}
   cancel-in-progress: false
 
 jobs:
   deploy:
+    name: Deploy ${{ inputs.target_environment }}
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ inputs.target_environment }}
     env:
       APP_IMAGE_TAG: ${{ inputs.image_tag }}
+      ENVIRONMENT: ${{ inputs.target_environment }}
 
     steps:
       - uses: actions/checkout@v6
@@ -29,7 +48,7 @@ jobs:
         shell: bash
         run: |
           if [[ ! "$APP_IMAGE_TAG" =~ ^sha-[0-9a-f]{7,40}$ ]]; then
-            echo "Production image tag must identify a commit as sha-<7-40 lowercase hex characters>: $APP_IMAGE_TAG" >&2
+            echo "Image tag must identify a commit as sha-<7-40 lowercase hex characters>: $APP_IMAGE_TAG" >&2
             exit 1
           fi
 
@@ -45,7 +64,7 @@ jobs:
         run: |
           test -n "$ANSIBLE_VAULT_PASSWORD"
           install -m 600 /dev/null .vault-password
-          printf '%s\n' "$ANSIBLE_VAULT_PASSWORD" > .vault-password
+          printf "%s\n" "$ANSIBLE_VAULT_PASSWORD" > .vault-password
 
       - name: Load SSH key
         uses: webfactory/ssh-agent@v0.10.0
@@ -53,7 +72,20 @@ jobs:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Check deployment
-        run: make ansible-check APP_IMAGE_TAG="$APP_IMAGE_TAG"
+        run: make ansible-check ENVIRONMENT="$ENVIRONMENT" APP_IMAGE_TAG="$APP_IMAGE_TAG"
 
       - name: Deploy Docker image
-        run: make deploy APP_IMAGE_TAG="$APP_IMAGE_TAG"
+        run: make deploy ENVIRONMENT="$ENVIRONMENT" APP_IMAGE_TAG="$APP_IMAGE_TAG"
+
+      - name: Record deployment summary
+        if: success()
+        run: |
+          {
+            echo "## Deployment completed"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Environment | $ENVIRONMENT |"
+            echo "| Image tag | $APP_IMAGE_TAG |"
+            echo "| Infrastructure commit | $GITHUB_SHA |"
+          } >> "$GITHUB_STEP_SUMMARY"

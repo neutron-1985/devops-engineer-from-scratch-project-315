@@ -4,7 +4,7 @@
     rule: allow
     direction: in
     proto: tcp
-    port: "{{ vault_inventory.ssh_port }}"
+    port: "{{ ssh_inventory.ssh_port }}"
     comment: "{{ firewall_policy_base_comment }}-ssh"
   when: firewall_policy_manage_base | bool
 

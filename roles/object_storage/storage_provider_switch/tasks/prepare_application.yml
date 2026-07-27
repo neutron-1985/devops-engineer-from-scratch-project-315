@@ -1,0 +1,14 @@
+---
+- name: Pull application image before object storage outage
+  ansible.builtin.include_role:
+    name: app_service
+    tasks_from: pull_image
+    apply:
+      delegate_to: "{{ groups['application'] | first }}"
+
+- name: Remember that application image is already available
+  ansible.builtin.set_fact:
+    app_image_preloaded: true
+  delegate_to: "{{ groups['application'] | first }}"
+  delegate_facts: true
+

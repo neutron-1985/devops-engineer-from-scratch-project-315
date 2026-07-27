@@ -1,0 +1,40 @@
+---
+- name: Load environment identity
+  ansible.builtin.include_vars:
+    file: >-
+      {{ route_environment_vars_file }}
+    name: route_environment_vars
+
+- name: Derive environment name from inventory path
+  ansible.builtin.set_fact:
+    route_environment: >-
+      {{ route_environment_vars_file | dirname | dirname | dirname | dirname | basename }}
+
+- name: Register environment public route
+  vars:
+    route_environment_suffix: >-
+      {{ '' if route_environment == 'prod' else '-' ~ route_environment }}
+    route_storage_endpoint: >-
+      http://{{ hostvars[groups['object_storage'][0]].ansible_host }}:{{ route_environment_vars.object_storage_api_port }}
+    route_storage_bucket: "{{ object_storage_bucket_base }}{{ route_environment_suffix }}"
+  ansible.builtin.set_fact:
+    nginx_virtual_hosts: >-
+      {{ nginx_virtual_hosts + [{
+        'name': route_environment,
+        'server_name': route_environment_vars.nginx_server_name,
+        'app_upstream': 'http://127.0.0.1:' ~ (route_environment_vars.app_public_port | string),
+        'static_cache_zone': 'project_static_' ~ route_environment,
+        'static_cache_path': nginx_cache_root_dir ~ '/' ~ route_environment ~ '/static',
+        'uploads_enabled': true,
+        'uploads_cache_zone': 'project_uploads_' ~ route_environment,
+        'uploads_cache_path': nginx_cache_root_dir ~ '/' ~ route_environment ~ '/uploads',
+        'uploads_upstream': route_storage_endpoint ~ '/' ~ route_storage_bucket ~ '/'
+      }] }}
+    nginx_server_names: >-
+      {{ nginx_server_names + [route_environment_vars.nginx_server_name] }}
+    nginx_environment_application_ports: >-
+      {{ nginx_environment_application_ports
+         + [route_environment_vars.app_public_port | string] }}
+    nginx_environment_management_ports: >-
+      {{ nginx_environment_management_ports
+         + [route_environment_vars.app_management_port | string] }}

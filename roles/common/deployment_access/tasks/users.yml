@@ -10,6 +10,6 @@
 
 - name: Authorize deployment SSH key
   ansible.posix.authorized_key:
-    user: "{{ vault_inventory.deploy_user }}"
-    key: "{{ vault_inventory.deploy_authorized_key }}"
+    user: "{{ ssh_inventory.deploy_user }}"
+    key: "{{ ssh_inventory.deploy_authorized_key }}"
     state: present

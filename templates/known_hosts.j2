@@ -1,4 +1,0 @@
-{% for target in vault_inventory.deploy_targets %}
-{{ ('[' ~ target.address ~ ']:' ~ vault_inventory.ssh_port) if vault_inventory.ssh_port | string != '22' else target.address }} {{ target.ssh_host_key }}
-{% endfor %}
-{{ ('[' ~ vault_inventory.database_target.address ~ ']:' ~ vault_inventory.ssh_port) if vault_inventory.ssh_port | string != '22' else vault_inventory.database_target.address }} {{ vault_inventory.database_target.ssh_host_key }}

@@ -1,53 +1,63 @@
 ---
-- name: Remove object storage migration containers
+- name: Remove every environment object-storage container
   community.docker.docker_container:
     name: "{{ item }}"
     state: absent
     force_kill: true
-  loop: "{{ infrastructure_reset_object_storage_migration_container_names }}"
+  loop: "{{ infrastructure_reset_object_storage_container_names }}"
   when: infrastructure_reset_docker_info.rc == 0
 
-- name: Remove MinIO containers
-  community.docker.docker_container:
-    name: "{{ item }}"
-    state: absent
-    force_kill: true
-  loop: "{{ infrastructure_reset_minio_container_names }}"
-  when: infrastructure_reset_docker_info.rc == 0
-
-- name: Remove legacy MinIO data volume
-  community.docker.docker_volume:
-    name: "{{ infrastructure_reset_legacy_minio_volume_name }}"
-    state: absent
-  when: infrastructure_reset_docker_info.rc == 0
-
-- name: Remove MinIO data and configuration
-  ansible.builtin.file:
-    path: "{{ minio_root_dir }}"
-    state: absent
-
-- name: Remove RustFS containers
-  community.docker.docker_container:
-    name: "{{ item }}"
-    state: absent
-    force_kill: true
-  loop: "{{ infrastructure_reset_rustfs_container_names }}"
-  when: infrastructure_reset_docker_info.rc == 0
-
-- name: Remove legacy RustFS volumes
+- name: Remove legacy object-storage volumes
   community.docker.docker_volume:
     name: "{{ item }}"
     state: absent
-  loop: "{{ infrastructure_reset_legacy_rustfs_volume_names }}"
+  loop: "{{ infrastructure_reset_legacy_object_storage_volume_names }}"
   when: infrastructure_reset_docker_info.rc == 0
 
-- name: Remove RustFS data and configuration
-  ansible.builtin.file:
-    path: "{{ rustfs_root_dir }}"
-    state: absent
+- name: Discover every environment MinIO data directory
+  ansible.builtin.find:
+    paths: /var/lib
+    patterns: project-devops-minio*
+    file_type: directory
+    recurse: false
+  register: infrastructure_reset_minio_directories
 
-- name: Remove object storage firewall local facts
+- name: Remove every environment MinIO data directory
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: absent
-  loop: "{{ infrastructure_reset_object_storage_firewall_fact_files }}"
+  loop: "{{ infrastructure_reset_minio_directories.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Discover every environment RustFS data directory
+  ansible.builtin.find:
+    paths: /var/lib
+    patterns: project-devops-rustfs*
+    file_type: directory
+    recurse: false
+  register: infrastructure_reset_rustfs_directories
+
+- name: Remove every environment RustFS data directory
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ infrastructure_reset_rustfs_directories.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Discover every environment object-storage firewall local fact
+  ansible.builtin.find:
+    paths: "{{ ansible_local_facts_dir }}"
+    patterns: object_storage_firewall*.fact
+    file_type: file
+    recurse: false
+  register: infrastructure_reset_object_storage_firewall_facts
+
+- name: Remove every environment object-storage firewall local fact
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ infrastructure_reset_object_storage_firewall_facts.files }}"
+  loop_control:
+    label: "{{ item.path }}"

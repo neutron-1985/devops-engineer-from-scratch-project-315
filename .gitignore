@@ -1,6 +1,6 @@
 roles/vendor/
 collections/
-generated.inventory.ini
-generated.known_hosts
+environments/_shared/runtime/
+environments/*/inventory/hosts.yml
 .vault-password
 .vault-password.new

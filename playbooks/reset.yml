@@ -1,9 +1,15 @@
 ---
-- name: Reset infrastructure hosts
+- name: Reset project resources
   hosts: infrastructure
-  remote_user: "{{ vault_inventory.provision_user }}"
+  remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
   tags: reset
 
+  vars:
+    reset_scope: all
+
   roles:
-    - role: common/infrastructure_reset
+    - role: environment_reset
+      when: reset_scope == 'environment'
+    - role: infrastructure_reset
+      when: reset_scope == 'all'

@@ -1,0 +1,56 @@
+---
+- name: Prepare environment PostgreSQL instance
+  hosts: database
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags: environment
+
+  roles:
+    - role: db_host
+    - role: db_firewall
+
+- name: Provision environment PostgreSQL instance
+  hosts: database
+  remote_user: "{{ ssh_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags: environment
+
+  roles:
+    - role: db_service
+
+- name: Prepare environment object-storage instance
+  hosts: object_storage
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags: environment
+
+  roles:
+    - role: storage_firewall
+      object_storage_api_allowed_cidrs: >-
+        {{ object_storage_application_api_allowed_cidrs }}
+
+  tasks:
+    - name: Prepare environment object-storage provider
+      ansible.builtin.import_role:
+        name: storage_deploy
+        tasks_from: prepare
+
+- name: Provision environment object-storage instance
+  hosts: object_storage
+  remote_user: "{{ ssh_inventory.deploy_user }}"
+  become: false
+  gather_facts: false
+  tags: environment
+
+  roles:
+    - role: storage_deploy
+
+- name: Prepare environment application runtime
+  hosts: application
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags: environment
+
+  roles:
+    - role: app_host

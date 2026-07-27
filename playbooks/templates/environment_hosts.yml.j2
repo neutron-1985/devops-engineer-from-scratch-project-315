@@ -1,0 +1,20 @@
+---
+# Generated from environments/_shared/inventory/inventory.vault.yml.
+# Environment: {{ rendered_environment }}
+# This file contains host topology only. Do not edit it manually.
+all:
+  children:
+{% for group_name in ['application', 'database', 'object_storage'] %}
+    {{ group_name }}:
+      hosts:
+{% for host_name in groups[group_name] %}
+        {{ host_name }}:
+          ansible_host: {{ hostvars[host_name].ansible_host | to_json }}
+          ansible_port: {{ hostvars[host_name].ansible_port | to_json }}
+{% endfor %}
+{% endfor %}
+    infrastructure:
+      children:
+        application: {}
+        database: {}
+        object_storage: {}

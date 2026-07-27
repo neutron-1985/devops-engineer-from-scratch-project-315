@@ -1,5 +1,0 @@
----
-object_storage_smoke_app_url: "http://127.0.0.1:{{ app_public_port }}"
-object_storage_smoke_public_base_url: ""
-object_storage_smoke_content: project-devops-s3-smoke-test
-object_storage_smoke_filename: storage-smoke.txt

@@ -1,0 +1,28 @@
+---
+- name: Remove selected PostgreSQL container
+  community.docker.docker_container:
+    name: "{{ postgresql_container_name }}"
+    state: absent
+    force_kill: true
+  when: environment_reset_docker_info.rc == 0
+
+- name: Remove selected PostgreSQL data
+  ansible.builtin.file:
+    path: "{{ postgresql_root_dir }}"
+    state: absent
+
+- name: Revoke selected PostgreSQL firewall access
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ database_port }}"
+    src: "{{ item }}"
+    comment: "project-devops-postgresql{{ environment_hyphen_suffix }}"
+    delete: true
+  loop: "{{ project_vault.database.application_allowed_cidrs }}"
+
+- name: Remove selected PostgreSQL firewall local fact
+  ansible.builtin.file:
+    path: "{{ postgresql_fact_file }}"
+    state: absent

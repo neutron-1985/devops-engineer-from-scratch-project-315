@@ -1,3 +1,0 @@
----
-postgresql_firewall_comment: project-devops-postgresql
-postgresql_previous_allowed_cidrs: "{{ ansible_local.postgresql_firewall | default([]) }}"

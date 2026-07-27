@@ -4,9 +4,9 @@
     that:
       - (firewall_policy_allowed_tcp_ports | type_debug) == 'list'
       - (firewall_policy_revoked_tcp_ports | type_debug) == 'list'
-      - (vault_inventory.ssh_port | string) is match('^[0-9]+$')
-      - vault_inventory.ssh_port | int >= 1
-      - vault_inventory.ssh_port | int <= 65535
+      - (ssh_inventory.ssh_port | string) is match('^[0-9]+$')
+      - ssh_inventory.ssh_port | int >= 1
+      - ssh_inventory.ssh_port | int <= 65535
 
 - name: Validate configured firewall ports
   ansible.builtin.assert:
@@ -27,7 +27,7 @@
       {{ firewall_policy_allowed_tcp_ports | map('string') | list }}
     revoked_ports: >-
       {{ firewall_policy_revoked_tcp_ports | map('string') | list }}
-    ssh_port: "{{ vault_inventory.ssh_port | string }}"
+    ssh_port: "{{ ssh_inventory.ssh_port | string }}"
   ansible.builtin.assert:
     that:
       - allowed_ports | intersect(revoked_ports) | length == 0

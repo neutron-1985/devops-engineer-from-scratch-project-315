@@ -1,0 +1,52 @@
+---
+- name: Reconcile shared application host prerequisites
+  hosts: application
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags:
+    - infrastructure
+    - application
+
+  roles:
+    - role: geerlingguy.docker
+    - role: deployment_access
+    - role: firewall_policy
+    - role: app_host
+
+  tasks:
+    - name: Install Nginx without replacing the active gateway configuration
+      ansible.builtin.import_role:
+        name: nginx/install
+        tasks_from: install
+
+    - name: Ensure Nginx is available for gateway reconciliation
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+- name: Reconcile shared database host prerequisites
+  hosts: database
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags:
+    - infrastructure
+    - database
+
+  roles:
+    - role: geerlingguy.docker
+    - role: deployment_access
+    - role: firewall_policy
+
+- name: Reconcile shared object-storage host prerequisites
+  hosts: object_storage
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags:
+    - infrastructure
+    - storage
+
+  roles:
+    - role: geerlingguy.docker
+    - role: deployment_access
+    - role: firewall_policy

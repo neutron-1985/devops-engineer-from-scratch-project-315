@@ -1,0 +1,3 @@
+{% for target in ssh_client_known_hosts | unique(attribute='address') %}
+{{ ('[' ~ target.address ~ ']:' ~ ssh_client_port) if ssh_client_port | string != '22' else target.address }} {{ target.ssh_host_key }}
+{% endfor %}

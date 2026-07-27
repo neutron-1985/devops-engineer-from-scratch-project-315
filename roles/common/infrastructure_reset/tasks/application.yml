@@ -10,10 +10,23 @@
     - "{{ app_container_name }}-previous"
     - "{{ app_container_name }}-rollback"
 
-- name: Remove application data and logs
+- name: Discover every environment application data directory
+  ansible.builtin.find:
+    paths: /var/lib
+    patterns: project-devops-deploy*
+    file_type: directory
+    recurse: false
+  register: infrastructure_reset_application_data_directories
+
+- name: Remove every environment application data directory
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: absent
-  loop:
-    - "{{ app_data_dir }}"
-    - "{{ infrastructure_reset_app_log_dir }}"
+  loop: "{{ infrastructure_reset_application_data_directories.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Remove application logs
+  ansible.builtin.file:
+    path: "{{ infrastructure_reset_app_log_dir }}"
+    state: absent

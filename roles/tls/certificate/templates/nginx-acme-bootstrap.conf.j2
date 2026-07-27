@@ -4,24 +4,29 @@ events {
 }
 
 http {
-    proxy_cache_path {{ nginx_static_cache_path }}
+{% for virtual_host in nginx_virtual_hosts %}
+    proxy_cache_path {{ virtual_host.static_cache_path }}
         levels=1:2
-        keys_zone=project_static:10m
+        keys_zone={{ virtual_host.static_cache_zone }}:10m
         max_size={{ nginx_static_cache_max_size }}
         inactive=7d
         use_temp_path=off;
-    proxy_cache_path {{ nginx_uploads_cache_path }}
+{% if virtual_host.uploads_enabled | bool %}
+    proxy_cache_path {{ virtual_host.uploads_cache_path }}
         levels=1:2
-        keys_zone=project_uploads:20m
+        keys_zone={{ virtual_host.uploads_cache_zone }}:20m
         max_size={{ nginx_uploads_cache_max_size }}
         inactive=30d
         use_temp_path=off;
+{% endif %}
+{% endfor %}
 
+{% for virtual_host in nginx_virtual_hosts %}
     server {
         listen {{ nginx_listen_port }};
         listen [::]:{{ nginx_listen_port }};
 
-        server_name {{ nginx_server_name }};
+        server_name {{ virtual_host.server_name }};
 
         default_type text/plain;
 
@@ -31,21 +36,24 @@ http {
         }
 
         location /assets/ {
-            proxy_pass {{ nginx_app_upstream }};
-            proxy_cache project_static;
+            proxy_pass {{ virtual_host.app_upstream }};
+            proxy_cache {{ virtual_host.static_cache_zone }};
             proxy_cache_valid 200 5d;
             add_header X-Cache-Status $upstream_cache_status always;
         }
 
+{% if virtual_host.uploads_enabled | bool %}
         location /uploads/ {
-            proxy_pass {{ nginx_uploads_upstream }}/{{ nginx_uploads_bucket }}/;
-            proxy_cache project_uploads;
+            proxy_pass {{ virtual_host.uploads_upstream }};
+            proxy_cache {{ virtual_host.uploads_cache_zone }};
             proxy_cache_valid 200 5d;
             add_header X-Cache-Status $upstream_cache_status always;
         }
+{% endif %}
 
         location / {
-            proxy_pass {{ nginx_app_upstream }};
+            proxy_pass {{ virtual_host.app_upstream }};
         }
     }
+{% endfor %}
 }

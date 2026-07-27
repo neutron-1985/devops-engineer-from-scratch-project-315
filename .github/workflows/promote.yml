@@ -1,0 +1,54 @@
+name: Promote
+
+run-name: "Promote ${{ inputs.image_tag }} through dev, stage, and prod"
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable Docker image tag to promote
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-promotion
+  cancel-in-progress: false
+
+jobs:
+  infrastructure:
+    name: Reconcile infrastructure
+    uses: ./.github/workflows/infrastructure.yml
+    with:
+      operation: apply
+      all_environments: true
+    secrets: inherit
+
+  deploy-dev:
+    name: Deploy dev
+    needs: infrastructure
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image_tag: ${{ inputs.image_tag }}
+      target_environment: dev
+    secrets: inherit
+
+  deploy-stage:
+    name: Deploy stage
+    needs: deploy-dev
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image_tag: ${{ inputs.image_tag }}
+      target_environment: stage
+    secrets: inherit
+
+  deploy-prod:
+    name: Deploy prod
+    needs: deploy-stage
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image_tag: ${{ inputs.image_tag }}
+      target_environment: prod
+    secrets: inherit

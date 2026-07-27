@@ -1,0 +1,5 @@
+---
+ssh_client_runtime_dir: "{{ playbook_dir }}/../environments/_shared/runtime"
+ssh_client_known_hosts_path: "{{ ssh_client_runtime_dir }}/known_hosts"
+ssh_client_known_hosts: "{{ ssh_inventory.known_hosts }}"
+ssh_client_port: "{{ ssh_inventory.ssh_port }}"

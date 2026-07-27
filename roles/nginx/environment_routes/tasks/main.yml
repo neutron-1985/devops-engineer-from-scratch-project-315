@@ -1,0 +1,30 @@
+---
+- name: Discover environment identity files
+  ansible.builtin.find:
+    paths: "{{ inventory_dir }}/../.."
+    patterns: vars.yml
+    file_type: file
+    recurse: true
+  delegate_to: localhost
+  become: false
+  register: nginx_environment_identity_scan
+
+- name: Initialize discovered environment routes
+  ansible.builtin.set_fact:
+    nginx_virtual_hosts: []
+    nginx_server_names: []
+    nginx_environment_application_ports: []
+    nginx_environment_management_ports: []
+    nginx_environment_identity_files: >-
+      {{ nginx_environment_identity_scan.files
+         | map(attribute='path')
+         | reject('search', '/_shared/')
+         | select('search', '/inventory/group_vars/all/vars\.yml')
+         | sort }}
+
+- name: Load discovered environment routes
+  ansible.builtin.include_tasks: load.yml
+  loop: "{{ nginx_environment_identity_files }}"
+  loop_control:
+    loop_var: route_environment_vars_file
+    label: "{{ route_environment_vars_file | dirname | dirname | dirname | dirname | basename }}"

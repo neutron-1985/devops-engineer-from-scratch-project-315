@@ -1,30 +1,6 @@
 ---
-- name: Create Nginx static cache directory
-  ansible.builtin.file:
-    path: "{{ nginx_static_cache_path }}"
-    state: directory
-    owner: www-data
-    group: www-data
-    mode: "0750"
-
-- name: Create Nginx uploads cache directory
-  ansible.builtin.file:
-    path: "{{ nginx_uploads_cache_path }}"
-    state: directory
-    owner: www-data
-    group: www-data
-    mode: "0750"
-
-- name: Ensure Nginx owns existing cache content
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: www-data
-    group: www-data
-    recurse: true
-  loop:
-    - "{{ nginx_static_cache_path }}"
-    - "{{ nginx_uploads_cache_path }}"
+- name: Prepare Nginx cache directories
+  ansible.builtin.import_tasks: directories.yml
 
 - name: Add cache zones and cached locations
   ansible.builtin.template:

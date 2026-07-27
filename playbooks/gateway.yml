@@ -1,0 +1,52 @@
+---
+- name: Publish environment catalog through the production gateway
+  hosts: application
+  remote_user: "{{ ssh_inventory.provision_user }}"
+  become: true
+  tags: gateway
+
+  pre_tasks:
+    - name: Load public routes from every environment inventory
+      ansible.builtin.import_role:
+        name: nginx/environment_routes
+
+    - name: Prepare cache directories for every environment
+      ansible.builtin.import_role:
+        name: nginx/cache
+        tasks_from: directories
+
+    - name: Reconcile shared gateway firewall
+      ansible.builtin.import_role:
+        name: firewall_policy
+      vars:
+        firewall_policy_allowed_tcp_ports:
+          - "{{ nginx_http_port }}"
+          - "{{ nginx_https_port }}"
+        firewall_policy_revoked_tcp_ports: >-
+          {{ nginx_environment_application_ports
+             + nginx_environment_management_ports }}
+
+    - name: Check whether the shared certificate exists
+      ansible.builtin.stat:
+        path: "/etc/letsencrypt/live/{{ tls_certificate_name }}/fullchain.pem"
+      register: gateway_certificate
+
+    - name: Publish routes with the current certificate before SAN expansion
+      ansible.builtin.import_role:
+        name: tls/nginx
+      when: gateway_certificate.stat.exists
+
+  roles:
+    - role: tls/certificate
+    - role: tls/certificate_renewal
+
+  post_tasks:
+    - name: Publish final HTTPS configuration
+      ansible.builtin.import_role:
+        name: tls/nginx
+
+    - name: Reload Nginx after certificate changes
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+

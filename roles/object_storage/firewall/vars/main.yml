@@ -1,7 +1,0 @@
----
-object_storage_firewall_previous_allowed_cidrs: >-
-  {{ ansible_local.object_storage_firewall | default([]) }}
-object_storage_firewall_fact_file: >-
-  {{ ansible_local_facts_dir }}/object_storage_firewall.fact
-object_storage_firewall_comment: project-devops-object-storage
-

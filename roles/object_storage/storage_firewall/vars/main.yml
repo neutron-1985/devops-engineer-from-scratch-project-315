@@ -1,0 +1,9 @@
+---
+object_storage_firewall_fact_name: >-
+  object_storage_firewall{{ environment_hyphen_suffix }}
+object_storage_firewall_previous_allowed_cidrs: >-
+  {{ ansible_local[object_storage_firewall_fact_name] | default([]) }}
+object_storage_firewall_fact_file: "{{ object_storage_fact_file }}"
+object_storage_firewall_comment: >-
+  project-devops-object-storage{{ environment_hyphen_suffix }}
+

@@ -4,6 +4,6 @@
     that:
       - nginx_cache_smoke_base_url is match('^https?://')
       - object_storage_inventory_host | length > 0
-      - vault_inventory.deploy_user | length > 0
+      - ssh_inventory.deploy_user | length > 0
     fail_msg: Nginx cache smoke test requires public Nginx and object storage endpoints.
 

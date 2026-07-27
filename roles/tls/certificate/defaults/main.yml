@@ -1,4 +1,5 @@
 ---
 tls_certificate_name: "{{ nginx_server_name }}"
+tls_certificate_domains: "{{ nginx_server_names | default([nginx_server_name]) }}"
 tls_certificate_admin_email: ""
 tls_certificate_webroot: "{{ acme_challenge_webroot }}"

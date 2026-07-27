@@ -1,0 +1,87 @@
+---
+# Shared runtime contract. Environment inventories contain identity values only.
+environment_hyphen_suffix: "{{ '' if environment_name == 'prod' else '-' ~ environment_name }}"
+
+project_vault: "{{ project_vault_by_environment[environment_name] }}"
+ansible_local_facts_dir: /etc/ansible/facts.d
+
+# Application runtime.
+app_container_name: "project-devops-deploy{{ environment_hyphen_suffix }}"
+app_data_dir: "/var/lib/project-devops-deploy{{ environment_hyphen_suffix }}"
+app_uploads_dir: "{{ app_data_dir }}/bulletin-images"
+app_container_management_port: "9090"
+app_profile: prod
+app_storage_backend: s3
+app_s3_public_url: /uploads
+
+# Environment database.
+database_host: "{{ hostvars[groups['database'] | first].ansible_host }}"
+database_name: bulletins
+database_username: bulletins_app
+database_password: "{{ project_vault.database.application_password }}"
+database_url: >-
+  jdbc:postgresql://{{ database_host }}:{{ database_port }}/{{ database_name }}
+database_migration_container_name: >-
+  project-devops-deploy{{ environment_hyphen_suffix }}-migration
+postgresql_container_name: "project-devops-postgresql{{ environment_hyphen_suffix }}"
+postgresql_root_dir: "/var/lib/project-devops-postgresql{{ environment_hyphen_suffix }}"
+postgresql_data_dir: "{{ postgresql_root_dir }}/data"
+postgresql_fact_file: >-
+  {{ ansible_local_facts_dir }}/postgresql_firewall{{ environment_hyphen_suffix }}.fact
+
+# Public route owned by this environment.
+nginx_http_port: "80"
+nginx_https_port: "443"
+nginx_listen_port: "{{ nginx_http_port }}"
+nginx_main_config_path: /etc/nginx/nginx.conf
+tls_certificate_admin_email: neutron-1985@live.ru
+acme_challenge_webroot: /var/www/letsencrypt
+nginx_app_upstream: "http://127.0.0.1:{{ app_public_port }}"
+nginx_uploads_upstream: "{{ object_storage_endpoint }}"
+nginx_uploads_bucket: "{{ object_storage_bucket }}"
+nginx_cache_root_dir: /var/cache/nginx
+nginx_static_cache_path: "{{ nginx_cache_root_dir }}/{{ environment_name }}/static"
+nginx_static_cache_max_size: 256m
+nginx_uploads_cache_path: "{{ nginx_cache_root_dir }}/{{ environment_name }}/uploads"
+nginx_uploads_cache_max_size: 1g
+nginx_virtual_host:
+  name: "{{ environment_name }}"
+  server_name: "{{ nginx_server_name }}"
+  app_upstream: "http://127.0.0.1:{{ app_public_port }}"
+  static_cache_zone: "project_static_{{ environment_name }}"
+  static_cache_path: "{{ nginx_cache_root_dir }}/{{ environment_name }}/static"
+  uploads_enabled: true
+  uploads_cache_zone: "project_uploads_{{ environment_name }}"
+  uploads_cache_path: "{{ nginx_cache_root_dir }}/{{ environment_name }}/uploads"
+  uploads_upstream: "{{ object_storage_endpoint }}/{{ object_storage_bucket }}/"
+
+# Environment S3 resources and shared service administration.
+object_storage_provider: rustfs
+object_storage_client_image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+object_storage_console_bind_address: 127.0.0.1
+object_storage_inventory_host: "{{ groups['object_storage'] | first }}"
+object_storage_endpoint: >-
+  http://{{ hostvars[object_storage_inventory_host].ansible_host }}:{{ object_storage_api_port }}
+object_storage_bucket_base: bulletin-images
+object_storage_bucket: "{{ object_storage_bucket_base }}{{ environment_hyphen_suffix }}"
+object_storage_region: us-east-1
+object_storage_object_prefix: bulletins
+object_storage_policy_name: "bulletins{{ environment_hyphen_suffix }}-app-read-write"
+object_storage_access_key: "bulletins{{ environment_hyphen_suffix }}-app"
+object_storage_secret_key: "{{ project_vault.object_storage.application_secret_key }}"
+object_storage_admin_access_key: bulletins-storage-admin
+object_storage_admin_secret_key: "{{ project_vault.object_storage.admin_secret_key }}"
+object_storage_public_api_allowed_cidrs:
+  - 0.0.0.0/0
+object_storage_application_api_allowed_cidrs:
+  - "{{ hostvars[groups['application'] | first].ansible_host }}/32"
+object_storage_migration_container_name: >-
+  project-devops-object-storage{{ environment_hyphen_suffix }}-migration
+object_storage_provider_switch_migration_port: >-
+  {{ (object_storage_api_port | int) + 100 }}
+object_storage_fact_file: >-
+  {{ ansible_local_facts_dir }}/object_storage_firewall{{ environment_hyphen_suffix }}.fact
+minio_container_name: "project-devops-minio{{ environment_hyphen_suffix }}"
+minio_root_dir: "/var/lib/project-devops-minio{{ environment_hyphen_suffix }}"
+rustfs_container_name: "project-devops-rustfs{{ environment_hyphen_suffix }}"
+rustfs_root_dir: "/var/lib/project-devops-rustfs{{ environment_hyphen_suffix }}"

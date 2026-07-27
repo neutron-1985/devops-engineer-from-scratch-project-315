@@ -1,11 +1,19 @@
 ---
 - name: "Step 4 | Put Nginx in front of the application"
-  hosts: production
-  remote_user: "{{ vault_inventory.provision_user }}"
+  hosts: application
+  remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
   tags:
     - step_04
+    - gateway
     - nginx
+
+  pre_tasks:
+    - name: Load environment route catalog
+      ansible.builtin.import_role:
+        name: nginx/environment_routes
+      when: "'environment' not in ansible_run_tags"
+      tags: always
 
   roles:
     - role: nginx/install
@@ -14,21 +22,22 @@
       tags: nginx-proxy
     - role: nginx/cache
       tags: nginx-cache
-    - role: common/firewall_policy
+    - role: firewall_policy
       tags: nginx-proxy
       firewall_policy_allowed_tcp_ports:
         - "{{ nginx_http_port }}"
-      firewall_policy_revoked_tcp_ports:
-        - "{{ app_public_port }}"
-        - "{{ app_container_management_port }}"
+      firewall_policy_revoked_tcp_ports: >-
+        {{ nginx_environment_application_ports
+           + nginx_environment_management_ports }}
 
 - name: "Step 4 | Bind application to the server loopback interface"
-  hosts: production
-  remote_user: "{{ vault_inventory.deploy_user }}"
+  hosts: application
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
   tags:
     - step_04
+    - environment
     - nginx
     - nginx-cache
 
@@ -39,33 +48,35 @@
     app_s3_public_url: /uploads
 
   roles:
-    - role: application/service
+    - role: app_service
 
 - name: "Step 4 | Restrict object storage to the application host"
   hosts: object_storage
-  remote_user: "{{ vault_inventory.provision_user }}"
+  remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
   tags:
     - step_04
     - nginx
     - nginx-cache
+    - environment
 
   vars:
     object_storage_api_allowed_cidrs: >-
       {{ object_storage_application_api_allowed_cidrs }}
 
   roles:
-    - role: object_storage/firewall
+    - role: storage_firewall
 
 - name: "Step 4 | Verify Nginx caches after restricting object storage"
-  hosts: production
-  remote_user: "{{ vault_inventory.deploy_user }}"
+  hosts: application
+  remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
   gather_facts: false
   tags:
     - step_04
     - nginx
 
+    - environment
   vars:
     nginx_cache_smoke_base_url: "http://{{ nginx_server_name }}"
 

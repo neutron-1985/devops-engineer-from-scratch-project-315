@@ -33,7 +33,7 @@
     state: absent
     remove: true
     force: true
-  loop: "{{ deployment_access_users | default([{'name': vault_inventory.deploy_user}]) }}"
+  loop: "{{ deployment_access_users | default([{'name': ssh_inventory.deploy_user}]) }}"
 
 - name: Remove Docker group
   ansible.builtin.group:

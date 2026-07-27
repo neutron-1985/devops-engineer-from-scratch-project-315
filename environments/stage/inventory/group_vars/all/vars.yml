@@ -1,0 +1,9 @@
+---
+# Identity values only; shared and derived settings live in environments/_shared/inventory/group_vars/all/vars.yml.
+environment_name: stage
+app_public_port: "8081"
+app_management_port: "9091"
+database_port: "5433"
+object_storage_api_port: "9002"
+object_storage_console_port: "9003"
+nginx_server_name: stage.n-devops.jumpingcrab.com

@@ -1,0 +1,50 @@
+---
+- name: Remove selected object-storage containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+    force_kill: true
+  loop:
+    - "{{ object_storage_migration_container_name }}"
+    - "{{ object_storage_migration_container_name }}-verify"
+    - "{{ minio_container_name }}"
+    - "{{ minio_container_name }}-create-bucket"
+    - "{{ minio_container_name }}-configure-public-downloads"
+    - "{{ minio_container_name }}-configure-user"
+    - "{{ minio_container_name }}-configure-policy"
+    - "{{ minio_container_name }}-attach-policy"
+    - "{{ rustfs_container_name }}"
+    - "{{ rustfs_container_name }}-configure-client"
+    - "{{ rustfs_container_name }}-create-bucket"
+    - "{{ rustfs_container_name }}-configure-public-downloads"
+    - "{{ rustfs_container_name }}-configure-user"
+    - "{{ rustfs_container_name }}-configure-policy"
+    - "{{ rustfs_container_name }}-attach-policy"
+  when: environment_reset_docker_info.rc == 0
+
+- name: Remove selected object-storage data and configuration
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ minio_root_dir }}"
+    - "{{ rustfs_root_dir }}"
+
+- name: Revoke selected object-storage firewall access
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ object_storage_api_port }}"
+    src: "{{ item }}"
+    comment: "project-devops-object-storage{{ environment_hyphen_suffix }}"
+    delete: true
+  loop: >-
+    {{ object_storage_public_api_allowed_cidrs
+       | union(object_storage_application_api_allowed_cidrs)
+       | unique }}
+
+- name: Remove selected object-storage firewall local fact
+  ansible.builtin.file:
+    path: "{{ object_storage_fact_file }}"
+    state: absent

@@ -11,7 +11,7 @@
 
 - name: Install Certbot and issue certificates
   ansible.builtin.include_role:
-    name: vendor/geerlingguy.certbot
+    name: geerlingguy.certbot
     apply:
       tags:
         - tls-certificate
@@ -21,10 +21,10 @@
     certbot_auto_renew: false
     certbot_create_if_missing: true
     certbot_create_method: webroot
+    certbot_expand: true
     certbot_admin_email: "{{ tls_certificate_admin_email }}"
     certbot_certs:
       - name: "{{ tls_certificate_name }}"
         email: "{{ tls_certificate_admin_email }}"
         webroot: "{{ tls_certificate_webroot }}"
-        domains:
-          - "{{ nginx_server_name }}"
+        domains: "{{ tls_certificate_domains }}"
