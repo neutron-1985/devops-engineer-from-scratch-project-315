@@ -1,6 +1,7 @@
 ---
-# Identity values only; shared and derived settings live in environments/_shared/inventory/group_vars/all/vars.yml.
+# Environment desired state; shared and derived settings live in environments/_shared/inventory/group_vars/all/vars.yml.
 environment_name: prod
+app_image_tag: sha-938dd8c
 app_public_port: "8080"
 app_management_port: "9090"
 database_port: "5432"

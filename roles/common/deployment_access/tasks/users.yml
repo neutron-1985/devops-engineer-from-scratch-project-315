@@ -12,4 +12,5 @@
   ansible.posix.authorized_key:
     user: "{{ ssh_inventory.deploy_user }}"
     key: "{{ ssh_inventory.deploy_authorized_key }}"
+    path: "{{ deployment_access_authorized_keys_path }}"
     state: present

@@ -2,3 +2,6 @@
 deployment_access_users:
   - name: "{{ ssh_inventory.deploy_user }}"
     groups: docker
+
+deployment_access_authorized_keys_path: >-
+  /home/{{ ssh_inventory.deploy_user }}/.ssh/authorized_keys
