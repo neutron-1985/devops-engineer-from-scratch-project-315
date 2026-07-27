@@ -106,6 +106,9 @@ tags that do not identify a commit.
 The `Release` workflow runs after a push to `main` that changes one or more
 environment `vars.yml` files.
 
+Push runs use the commit message as their title. For tag promotion, use a
+subject such as `release(stage): deploy sha-938dd8c`.
+
 1. `dorny/paths-filter` identifies the changed environments.
 2. A matrix creates an independent job for each environment.
 3. Each job reconciles infrastructure, checks the deployment, and deploys the
@@ -126,9 +129,9 @@ Promote a verified tag through separate reviewed changes:
 dev vars.yml → verify dev → stage vars.yml → verify stage → prod vars.yml
 ```
 
-If several inventories change in one push, their matrix jobs are independent;
-stage does not wait for dev. Separate changes preserve the promotion sequence
-in Git history.
+If several inventories change in one push, their matrix jobs run one at a time
+to avoid concurrent changes on shared hosts. Separate reviewed changes preserve
+the promotion sequence explicitly in Git history.
 
 ## Provisioning stages
 

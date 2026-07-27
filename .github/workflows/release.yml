@@ -1,6 +1,11 @@
 name: Release
 
-run-name: "Reconcile and deploy environment from inventory"
+run-name: >-
+  ${{
+    github.event_name == 'workflow_dispatch'
+    && format('Release {0} from inventory', inputs.target_environment)
+    || github.event.head_commit.message
+  }}
 
 on:
   push:
@@ -64,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         environment: ${{ fromJSON(needs.detect.outputs.environments) }}
     environment: ${{ matrix.environment }}
