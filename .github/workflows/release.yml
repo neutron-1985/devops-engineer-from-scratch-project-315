@@ -54,8 +54,8 @@ jobs:
                 || steps.changes.outputs.stage == 'true' && 'stage'
                 || 'prod' }}
         run: >-
-          printf 'image_tag=%s\n'
-          "$(sed -n 's/^app_image_tag:[[:space:]]*//p'
+          printf 'image_tag=%s\n' "$(awk
+          '$1 == "app_image_tag:" { print $2 }'
           "environments/${SOURCE_ENVIRONMENT}/inventory/group_vars/all/vars.yml")"
           >> "$GITHUB_OUTPUT"
 
