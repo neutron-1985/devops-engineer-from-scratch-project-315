@@ -1,7 +1,7 @@
 ---
 # Environment desired state; shared and derived settings live in environments/_shared/inventory/group_vars/all/vars.yml.
 environment_name: dev
-app_image_tag: sha-425dd32
+app_image_tag: sha-938dd8c
 app_public_port: "8082"
 app_management_port: "9092"
 database_port: "5434"
