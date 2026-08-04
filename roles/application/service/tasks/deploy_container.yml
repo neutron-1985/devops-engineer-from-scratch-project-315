@@ -79,14 +79,17 @@
     image: "{{ app_image }}"
     state: started
     restart_policy: always
+    entrypoint: "{{ app_container_entrypoint }}"
     pull: missing
     log_driver: "{{ app_log_driver }}"
     log_options: "{{ app_log_options }}"
+    healthcheck: "{{ app_container_healthcheck }}"
     ports:
       - "{{ app_bind_address }}:{{ app_public_port }}:8080"
       - "{{ app_management_bind_address }}:{{ app_management_port }}:{{ app_container_management_port }}"
     volumes:
       - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
+      - "{{ app_log_dir }}:{{ app_container_log_dir }}"
     env: "{{ app_common_environment | combine(app_external_services_environment) }}"
   check_mode: true
   register: app_candidate_plan
@@ -139,14 +142,17 @@
         image: "{{ app_image }}"
         state: started
         restart_policy: always
+        entrypoint: "{{ app_container_entrypoint }}"
         pull: missing
         log_driver: "{{ app_log_driver }}"
         log_options: "{{ app_log_options }}"
+        healthcheck: "{{ app_container_healthcheck }}"
         ports:
           - "{{ app_bind_address }}:{{ app_public_port }}:8080"
           - "{{ app_management_bind_address }}:{{ app_management_port }}:{{ app_container_management_port }}"
         volumes:
           - "{{ app_uploads_dir }}:{{ app_container_uploads_dir }}"
+          - "{{ app_log_dir }}:{{ app_container_log_dir }}"
         env: "{{ app_common_environment | combine(app_external_services_environment) }}"
       no_log: true
 

@@ -10,6 +10,15 @@ on:
       - environments/dev/inventory/group_vars/all/vars.yml
       - environments/stage/inventory/group_vars/all/vars.yml
       - environments/prod/inventory/group_vars/all/vars.yml
+      - environments/_shared/**
+      - playbooks/**
+      - roles/**
+      - ansible.cfg
+      - Makefile
+      - playbook.yml
+      - requirements.yml
+      - .github/workflows/deploy-environment.yml
+      - .github/workflows/release.yml
 
 permissions:
   contents: read
@@ -20,14 +29,22 @@ concurrency:
 
 jobs:
   plan:
-    name: Select release source
+    name: Select deployment plan
     runs-on: ubuntu-latest
     outputs:
       source_environment: >-
         ${{ steps.changes.outputs.dev == 'true' && 'dev'
             || steps.changes.outputs.stage == 'true' && 'stage'
-            || 'prod' }}
-      image_tag: ${{ steps.image.outputs.image_tag }}
+            || steps.changes.outputs.prod == 'true' && 'prod'
+            || 'configuration' }}
+      configuration_changed: ${{ steps.changes.outputs.configuration }}
+      promotion_image_tag: >-
+        ${{ steps.changes.outputs.dev == 'true' && steps.dev_image.outputs.image_tag
+            || steps.changes.outputs.stage == 'true' && steps.stage_image.outputs.image_tag
+            || steps.prod_image.outputs.image_tag }}
+      dev_image_tag: ${{ steps.dev_image.outputs.image_tag }}
+      stage_image_tag: ${{ steps.stage_image.outputs.image_tag }}
+      prod_image_tag: ${{ steps.prod_image.outputs.image_tag }}
 
     steps:
       - uses: actions/checkout@v6
@@ -45,28 +62,54 @@ jobs:
               - environments/stage/inventory/group_vars/all/vars.yml
             prod:
               - environments/prod/inventory/group_vars/all/vars.yml
+            configuration:
+              - environments/_shared/**
+              - playbooks/**
+              - roles/**
+              - ansible.cfg
+              - Makefile
+              - playbook.yml
+              - requirements.yml
+              - .github/workflows/deploy-environment.yml
+              - .github/workflows/release.yml
 
-      - name: Read image tag from prioritized inventory
-        id: image
-        env:
-          SOURCE_ENVIRONMENT: >-
-            ${{ steps.changes.outputs.dev == 'true' && 'dev'
-                || steps.changes.outputs.stage == 'true' && 'stage'
-                || 'prod' }}
+      - name: Read dev image tag
+        id: dev_image
         run: >-
           printf 'image_tag=%s\n' "$(awk
           '$1 == "app_image_tag:" { print $2 }'
-          "environments/${SOURCE_ENVIRONMENT}/inventory/group_vars/all/vars.yml")"
+          environments/dev/inventory/group_vars/all/vars.yml)"
+          >> "$GITHUB_OUTPUT"
+
+      - name: Read stage image tag
+        id: stage_image
+        run: >-
+          printf 'image_tag=%s\n' "$(awk
+          '$1 == "app_image_tag:" { print $2 }'
+          environments/stage/inventory/group_vars/all/vars.yml)"
+          >> "$GITHUB_OUTPUT"
+
+      - name: Read prod image tag
+        id: prod_image
+        run: >-
+          printf 'image_tag=%s\n' "$(awk
+          '$1 == "app_image_tag:" { print $2 }'
+          environments/prod/inventory/group_vars/all/vars.yml)"
           >> "$GITHUB_OUTPUT"
 
   deploy-dev:
     name: Deploy dev
     needs: plan
-    if: needs.plan.outputs.source_environment == 'dev'
+    if: >-
+      ${{ needs.plan.outputs.source_environment == 'dev'
+          || needs.plan.outputs.configuration_changed == 'true' }}
     uses: ./.github/workflows/deploy-environment.yml
     with:
       target_environment: dev
-      image_tag: ${{ needs.plan.outputs.image_tag }}
+      image_tag: >-
+        ${{ needs.plan.outputs.source_environment == 'dev'
+            && needs.plan.outputs.promotion_image_tag
+            || needs.plan.outputs.dev_image_tag }}
     secrets: inherit
 
   deploy-stage:
@@ -78,12 +121,17 @@ jobs:
       ${{ always()
       && needs.plan.result == 'success'
       && (needs.deploy-dev.result == 'success' || needs.deploy-dev.result == 'skipped')
-      && (needs.plan.outputs.source_environment == 'dev'
+      && (needs.plan.outputs.configuration_changed == 'true'
+          || needs.plan.outputs.source_environment == 'dev'
           || needs.plan.outputs.source_environment == 'stage') }}
     uses: ./.github/workflows/deploy-environment.yml
     with:
       target_environment: stage
-      image_tag: ${{ needs.plan.outputs.image_tag }}
+      image_tag: >-
+        ${{ (needs.plan.outputs.source_environment == 'dev'
+             || needs.plan.outputs.source_environment == 'stage')
+            && needs.plan.outputs.promotion_image_tag
+            || needs.plan.outputs.stage_image_tag }}
     secrets: inherit
 
   deploy-prod:
@@ -98,5 +146,8 @@ jobs:
     uses: ./.github/workflows/deploy-environment.yml
     with:
       target_environment: prod
-      image_tag: ${{ needs.plan.outputs.image_tag }}
+      image_tag: >-
+        ${{ needs.plan.outputs.source_environment != 'configuration'
+            && needs.plan.outputs.promotion_image_tag
+            || needs.plan.outputs.prod_image_tag }}
     secrets: inherit

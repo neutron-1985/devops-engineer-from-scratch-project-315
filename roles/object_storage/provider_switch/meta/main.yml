@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: object_storage_provider_switch
+  author: neutron-1985
+  description: Orchestrates data migration and cutover between storage providers
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - storage
+    - migration
+
+dependencies: []

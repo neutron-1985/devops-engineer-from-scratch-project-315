@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: nginx_cache_smoke_test
+  author: neutron-1985
+  description: Verifies Nginx caching for frontend assets and uploaded objects
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - nginx
+    - testing
+
+dependencies: []

@@ -11,8 +11,8 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: www-data
-    group: www-data
+    owner: "{{ nginx_container_uid }}"
+    group: "{{ nginx_container_gid }}"
     mode: "0750"
   loop: "{{ nginx_cache_directories }}"
 
@@ -20,7 +20,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: www-data
-    group: www-data
+    owner: "{{ nginx_container_uid }}"
+    group: "{{ nginx_container_gid }}"
     recurse: true
   loop: "{{ nginx_cache_directories }}"

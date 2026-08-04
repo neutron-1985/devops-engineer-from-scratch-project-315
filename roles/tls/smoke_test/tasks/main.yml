@@ -1,5 +1,5 @@
 ---
-- name: Verify HTTPS and certificate renewal
+- name: Verify HTTPS, TLS policy, and renewal timer
   when: not ansible_check_mode
   block:
     - name: Request HTTP without following redirects
@@ -107,27 +107,18 @@
       changed_when: false
       failed_when: tls_smoke_legacy_cipher.rc == 0
 
-    - name: Simulate certificate renewal and execute deploy hooks
-      ansible.builtin.command:
-        argv:
-          - certbot
-          - renew
-          - --dry-run
-          - --run-deploy-hooks
-      changed_when: false
-
-    - name: Check Certbot timer state
+    - name: Check containerized Certbot timer state
       ansible.builtin.command:
         argv:
           - systemctl
           - is-active
-          - certbot.timer
+          - "{{ tls_smoke_certbot_timer_unit }}"
       changed_when: false
 
-    - name: Check Certbot timer enablement
+    - name: Check containerized Certbot timer enablement
       ansible.builtin.command:
         argv:
           - systemctl
           - is-enabled
-          - certbot.timer
+          - "{{ tls_smoke_certbot_timer_unit }}"
       changed_when: false

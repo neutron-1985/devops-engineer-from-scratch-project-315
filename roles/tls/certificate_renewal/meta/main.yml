@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: tls_certificate_renewal
+  author: neutron-1985
+  description: Schedules automatic TLS renewal with a one-shot Certbot container
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - tls
+    - certbot
+
+dependencies: []

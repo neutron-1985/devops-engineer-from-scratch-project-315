@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: common_infrastructure_reset
+  author: neutron-1985
+  description: Stops or removes project infrastructure while preserving unrelated workloads
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - maintenance
+    - reset
+
+dependencies: []

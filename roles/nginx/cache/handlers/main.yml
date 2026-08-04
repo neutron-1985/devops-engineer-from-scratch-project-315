@@ -1,5 +1,0 @@
----
-- name: Reload Nginx after cache configuration
-  ansible.builtin.service:
-    name: nginx
-    state: reloaded

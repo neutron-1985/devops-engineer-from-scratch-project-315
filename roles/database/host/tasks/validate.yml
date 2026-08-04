@@ -4,8 +4,9 @@
     that:
       - postgresql_python_driver_package | length > 0
       - postgresql_data_dir is match('^/')
+      - postgresql_log_dir is match('^/')
       - postgresql_container_uid is match('^[0-9]+$')
       - postgresql_container_gid is match('^[0-9]+$')
     fail_msg: >-
-      PostgreSQL host setup requires a package, an absolute data path,
+      PostgreSQL host setup requires a package, absolute data and log paths,
       and numeric container UID and GID values.

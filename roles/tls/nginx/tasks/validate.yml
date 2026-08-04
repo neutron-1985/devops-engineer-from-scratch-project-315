@@ -6,7 +6,9 @@
       - nginx_server_name != '_'
       - tls_nginx_certificate_name | default('') | length > 0
       - tls_nginx_acme_webroot | default('') | length > 0
-      - nginx_main_config_path | default('') | length > 0
+      - nginx_routes_config_pattern | default('') | length > 0
+      - nginx_virtual_hosts is sequence
+      - nginx_virtual_hosts | length > 0
       - tls_nginx_protocols.split() | difference(['TLSv1.2', 'TLSv1.3']) | length == 0
       - "'TLSv1.2' in tls_nginx_protocols.split()"
       - "'TLSv1.3' in tls_nginx_protocols.split()"
@@ -14,7 +16,17 @@
       - tls_nginx_tls13_ciphers | length > 0
     fail_msg: >-
       TLS requires a public server name, certificate, ACME webroot, TLS 1.2/1.3,
-      explicit modern cipher allowlists, and an Nginx config path.
+      explicit modern cipher allowlists, and Nginx route configuration paths.
+
+- name: Validate Nginx TLS route configuration paths
+  ansible.builtin.assert:
+    that:
+      - virtual_host.config_path | default('') | length > 0
+    fail_msg: Each TLS virtual host requires its own Nginx configuration path.
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    loop_var: virtual_host
+    label: "{{ virtual_host.name | default('unnamed') }}"
 
 - name: Check TLS certificate
   ansible.builtin.stat:
@@ -29,6 +41,6 @@
 - name: Require TLS certificate files
   ansible.builtin.assert:
     that:
-      - tls_nginx_certificate.stat.exists
-      - tls_nginx_private_key.stat.exists
+      - tls_nginx_certificate.stat.exists or ansible_check_mode
+      - tls_nginx_private_key.stat.exists or ansible_check_mode
     fail_msg: TLS certificate files are missing. Run make cert first.

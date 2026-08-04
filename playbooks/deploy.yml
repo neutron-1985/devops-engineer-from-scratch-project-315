@@ -1,31 +1,5 @@
 ---
-- name: Migrate production-like runtime databases
-  hosts: application
-  serial: 1
-  remote_user: "{{ ssh_inventory.deploy_user }}"
-  become: false
-  gather_facts: false
-  any_errors_fatal: true
-  tags: deploy
-
-  roles:
-    - role: database/migration
-      when: app_profile == 'prod'
-
-- name: Deploy application runtime
-  hosts: application
-  serial: 1
-  remote_user: "{{ ssh_inventory.deploy_user }}"
-  become: false
-  gather_facts: false
-  any_errors_fatal: true
-  tags: deploy
-
-  vars:
-    app_require_immutable_image_tag: true
-
-  roles:
-    - role: application/service
+- import_playbook: runtime.yml
 
 - name: Verify production-like runtime deployment
   hosts: application

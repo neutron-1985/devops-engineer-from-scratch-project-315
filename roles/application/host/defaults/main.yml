@@ -2,3 +2,8 @@
 # Runtime identity declared by the application image.
 app_container_uid: "100"
 app_container_gid: "101"
+
+# Host-side rotation for redirected application stdout/stderr.
+app_logrotate_config_path: "/etc/logrotate.d/{{ app_container_name }}"
+app_logrotate_size: 10M
+app_logrotate_rotate: 5

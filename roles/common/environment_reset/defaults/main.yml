@@ -1,2 +1,4 @@
 ---
 environment_reset_confirm: false
+reset_mode: hard
+environment_reset_logrotate_config_path: "/etc/logrotate.d/{{ app_container_name }}"

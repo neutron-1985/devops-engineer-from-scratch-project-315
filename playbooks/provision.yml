@@ -3,6 +3,7 @@
   hosts: database
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
+  gather_facts: false
   tags: environment
 
   roles:
@@ -23,6 +24,7 @@
   hosts: object_storage
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
+  gather_facts: false
   tags: environment
 
   roles:
@@ -50,6 +52,7 @@
   hosts: application
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
+  gather_facts: false
   tags: environment
 
   roles:

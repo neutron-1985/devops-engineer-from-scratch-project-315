@@ -1,5 +1,5 @@
 ---
-- name: "Step 1 | Prepare application host"
+- name: "Step 1 | Prepare application server infrastructure"
   hosts: application
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
@@ -8,26 +8,8 @@
     - application
 
   roles:
+    - role: common/host_prerequisites
     - role: geerlingguy.docker
     - role: common/deployment_access
     - role: common/firewall_policy
-      firewall_policy_allowed_tcp_ports:
-        - "{{ app_public_port }}"
     - role: application/host
-
-- name: "Step 1 | Deploy standalone application"
-  hosts: application
-  remote_user: "{{ ssh_inventory.deploy_user }}"
-  become: false
-  gather_facts: false
-  tags:
-    - step_01
-    - application
-
-  vars:
-    app_profile: dev
-    app_storage_backend: local
-    app_bind_address: 0.0.0.0
-
-  roles:
-    - role: application/service

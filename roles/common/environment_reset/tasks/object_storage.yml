@@ -1,9 +1,9 @@
 ---
-- name: Remove selected object-storage containers
+- name: Stop or remove selected object-storage containers
   community.docker.docker_container:
     name: "{{ item }}"
-    state: absent
-    force_kill: true
+    state: "{{ 'stopped' if reset_mode == 'soft' else 'absent' }}"
+    keep_volumes: true
   loop:
     - "{{ object_storage_migration_container_name }}"
     - "{{ object_storage_migration_container_name }}-verify"
@@ -20,7 +20,9 @@
     - "{{ rustfs_container_name }}-configure-user"
     - "{{ rustfs_container_name }}-configure-policy"
     - "{{ rustfs_container_name }}-attach-policy"
-  when: environment_reset_docker_info.rc == 0
+  when:
+    - environment_reset_docker_info.rc == 0
+    - reset_mode == 'hard' or item in (environment_reset_container_names.stdout_lines | default([]))
 
 - name: Remove selected object-storage data and configuration
   ansible.builtin.file:
@@ -28,7 +30,16 @@
     state: absent
   loop:
     - "{{ minio_root_dir }}"
+    - "{{ minio_log_dir }}"
     - "{{ rustfs_root_dir }}"
+    - "{{ rustfs_log_dir }}"
+  when: reset_mode == 'hard'
+
+- name: Remove selected MinIO log rotation configuration
+  ansible.builtin.file:
+    path: "/etc/logrotate.d/{{ minio_container_name }}"
+    state: absent
+  when: reset_mode == 'hard'
 
 - name: Revoke selected object-storage firewall access
   community.general.ufw:
@@ -43,8 +54,12 @@
     {{ object_storage_public_api_allowed_cidrs
        | union(object_storage_application_api_allowed_cidrs)
        | unique }}
+  when:
+    - reset_mode == 'hard'
+    - environment_reset_ufw_info.rc | default(1) == 0
 
 - name: Remove selected object-storage firewall local fact
   ansible.builtin.file:
     path: "{{ object_storage_fact_file }}"
     state: absent
+  when: reset_mode == 'hard'

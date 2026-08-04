@@ -19,7 +19,14 @@
     that:
       - app_log_driver | length > 0
       - app_log_options is mapping
-    fail_msg: "Application container logging requires a driver and an options mapping."
+      - app_log_dir is match('^/')
+      - app_container_log_dir is match('^/')
+      - app_container_log_file is match('^/')
+      - app_container_entrypoint is sequence
+      - app_container_entrypoint | length == 3
+      - app_container_healthcheck is mapping
+      - app_container_healthcheck.test | length > 0
+    fail_msg: "Application container requires valid logging and healthcheck configuration."
 
 - name: Validate application release container settings
   ansible.builtin.assert:

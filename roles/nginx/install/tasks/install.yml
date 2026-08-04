@@ -1,7 +1,24 @@
 ---
-- name: Install Nginx package without starting the service
+- name: Inspect host services before Nginx container migration
+  ansible.builtin.service_facts:
+
+- name: Ensure Nginx container image is available
+  community.docker.docker_image:
+    name: "{{ nginx_image }}"
+    source: pull
+
+- name: Stop and disable host Nginx service
+  ansible.builtin.systemd:
+    name: nginx.service
+    state: stopped
+    enabled: false
+  when: ansible_facts.services.get('nginx.service') is not none
+
+- name: Remove host Nginx packages
   ansible.builtin.apt:
-    name: nginx
-    state: present
+    name:
+      - nginx
+      - nginx-common
+    state: absent
     update_cache: true
-    policy_rc_d: 101
+    cache_valid_time: 3600

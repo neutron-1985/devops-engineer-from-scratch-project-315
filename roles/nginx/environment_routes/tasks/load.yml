@@ -17,10 +17,13 @@
     route_storage_endpoint: >-
       http://{{ hostvars[groups['object_storage'][0]].ansible_host }}:{{ route_environment_vars.object_storage_api_port }}
     route_storage_bucket: "{{ object_storage_bucket_base }}{{ route_environment_suffix }}"
+    route_is_selected: >-
+      {{ nginx_route_scope == 'all' or route_environment == nginx_route_environment }}
   ansible.builtin.set_fact:
     nginx_virtual_hosts: >-
-      {{ nginx_virtual_hosts + [{
+      {{ nginx_virtual_hosts + ([{
         'name': route_environment,
+        'config_path': nginx_config_dir ~ '/20-project-' ~ route_environment ~ '.conf',
         'server_name': route_environment_vars.nginx_server_name,
         'app_upstream': 'http://127.0.0.1:' ~ (route_environment_vars.app_public_port | string),
         'static_cache_zone': 'project_static_' ~ route_environment,
@@ -29,9 +32,10 @@
         'uploads_cache_zone': 'project_uploads_' ~ route_environment,
         'uploads_cache_path': nginx_cache_root_dir ~ '/' ~ route_environment ~ '/uploads',
         'uploads_upstream': route_storage_endpoint ~ '/' ~ route_storage_bucket ~ '/'
-      }] }}
+      }] if route_is_selected | bool else []) }}
     nginx_server_names: >-
-      {{ nginx_server_names + [route_environment_vars.nginx_server_name] }}
+      {{ nginx_server_names
+         + ([route_environment_vars.nginx_server_name] if route_is_selected | bool else []) }}
     nginx_environment_application_ports: >-
       {{ nginx_environment_application_ports
          + [route_environment_vars.app_public_port | string] }}

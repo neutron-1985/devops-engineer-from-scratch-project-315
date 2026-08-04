@@ -1,0 +1,4 @@
+---
+nginx_route_scope: environment
+nginx_route_environment: "{{ environment_name }}"
+nginx_legacy_routes_config_path: "{{ nginx_config_dir }}/20-project-routes.conf"

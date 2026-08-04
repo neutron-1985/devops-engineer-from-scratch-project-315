@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: object_storage_migration
+  author: neutron-1985
+  description: Copies and verifies data between object storage providers
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - storage
+    - migration
+
+dependencies: []

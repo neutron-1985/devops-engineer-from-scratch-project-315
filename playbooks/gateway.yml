@@ -1,16 +1,17 @@
 ---
-- name: Publish environment catalog through the production gateway
+- name: Publish requested environment routes through the shared gateway
   hosts: application
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true
+  gather_facts: false
   tags: gateway
 
   pre_tasks:
-    - name: Load public routes from every environment inventory
+    - name: Load requested public environment routes
       ansible.builtin.import_role:
         name: nginx/environment_routes
 
-    - name: Prepare cache directories for every environment
+    - name: Prepare cache directories for requested environment routes
       ansible.builtin.import_role:
         name: nginx/cache
         tasks_from: directories
@@ -45,8 +46,9 @@
       ansible.builtin.import_role:
         name: tls/nginx
 
-    - name: Reload Nginx after certificate changes
-      ansible.builtin.service:
-        name: nginx
-        state: reloaded
+    - name: Reload Nginx container after certificate changes
+      community.docker.docker_container_exec:
+        container: "{{ nginx_container_name }}"
+        command: nginx -s reload
+      when: not ansible_check_mode
 

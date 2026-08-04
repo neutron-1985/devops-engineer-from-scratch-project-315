@@ -1,5 +1,11 @@
 ---
-tls_certificate_name: "{{ nginx_server_name }}"
+tls_certificate_name: "{{ tls_gateway_certificate_name }}"
 tls_certificate_domains: "{{ nginx_server_names | default([nginx_server_name]) }}"
 tls_certificate_admin_email: ""
 tls_certificate_webroot: "{{ acme_challenge_webroot }}"
+tls_certificate_image: "{{ certbot_image | default('certbot/certbot:v5.6.0') }}"
+tls_certificate_container_name: "{{ certbot_container_name | default('project-devops-certbot') }}"
+tls_certificate_config_dir: "{{ certbot_config_dir | default('/etc/letsencrypt') }}"
+tls_certificate_work_dir: "{{ certbot_work_dir | default('/var/lib/letsencrypt') }}"
+tls_certificate_log_dir: "{{ certbot_log_dir | default('/var/log/project-devops-certbot') }}"
+tls_certificate_max_log_backups: 5

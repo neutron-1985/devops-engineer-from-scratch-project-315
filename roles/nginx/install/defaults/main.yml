@@ -1,0 +1,28 @@
+---
+nginx_image: nginx:1.30.4-alpine
+nginx_container_name: project-devops-nginx
+nginx_container_uid: "101"
+nginx_container_gid: "101"
+nginx_main_config_path: /etc/nginx/nginx.conf
+nginx_container_main_config_path: /etc/nginx/nginx.conf
+nginx_container_config_dir: /etc/nginx/conf.d
+nginx_container_cache_dir: /var/cache/nginx
+nginx_container_log_dir: /var/log/nginx
+nginx_container_certificates_dir: /etc/letsencrypt
+nginx_log_dir: /var/log/project-devops-nginx
+nginx_logrotate_config_path: /etc/logrotate.d/project-devops-nginx
+nginx_logrotate_size: 10M
+nginx_logrotate_rotate: 5
+nginx_log_driver: json-file
+nginx_log_options:
+  max-size: 10m
+  max-file: "5"
+nginx_healthcheck:
+  test:
+    - CMD
+    - nginx
+    - -t
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 10s

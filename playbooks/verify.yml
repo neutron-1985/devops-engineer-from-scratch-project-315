@@ -25,7 +25,7 @@
   roles:
     - role: nginx/cache_smoke_test
 
-- name: Verify environment HTTPS and certificate renewal
+- name: Verify environment HTTPS, TLS policy, and renewal timer
   hosts: application
   remote_user: "{{ ssh_inventory.provision_user }}"
   become: true

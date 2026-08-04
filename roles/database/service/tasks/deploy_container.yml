@@ -8,8 +8,23 @@
     restart_policy: always
     pull: missing
     network_mode: host
+    log_driver: "{{ postgresql_log_driver }}"
+    log_options: "{{ postgresql_log_options }}"
+    command:
+      - postgres
+      - -c
+      - logging_collector=on
+      - -c
+      - "log_directory={{ postgresql_container_log_dir }}"
+      - -c
+      - log_filename=postgresql-%a.log
+      - -c
+      - log_rotation_age=1d
+      - -c
+      - log_truncate_on_rotation=on
     volumes:
       - "{{ postgresql_data_dir }}:/var/lib/postgresql/data"
+      - "{{ postgresql_log_dir }}:{{ postgresql_container_log_dir }}"
     env:
       POSTGRES_DB: "{{ postgresql_database }}"
       POSTGRES_USER: "{{ postgresql_user }}"

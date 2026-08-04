@@ -1,41 +1,46 @@
 ---
-- name: Remove Docker, Nginx, and UFW packages
-  ansible.builtin.apt:
-    name: "{{ infrastructure_reset_docker_packages + infrastructure_reset_nginx_packages + ['ufw'] }}"
-    state: absent
-    purge: true
-    autoremove: true
+- name: Stop and disable containerized Certbot renewal timer
+  ansible.builtin.systemd:
+    name: "{{ certbot_renewal_timer_unit }}"
+    state: stopped
+    enabled: false
+  failed_when: false
 
-- name: Remove Docker repository, configuration, and runtime data
+- name: Remove containerized Certbot renewal units
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}"
+    state: absent
+  loop:
+    - "{{ certbot_renewal_service_unit }}"
+    - "{{ certbot_renewal_timer_unit }}"
+
+- name: Reload systemd after Certbot renewal removal
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Remove managed project Nginx configurations
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
-  loop: "{{ infrastructure_reset_docker_paths }}"
+  loop: "{{ infrastructure_reset_nginx_config_paths }}"
 
-- name: Remove Nginx cache
+- name: Inspect managed project Nginx route configurations
+  ansible.builtin.find:
+    paths: "{{ nginx_config_dir }}"
+    patterns: "{{ nginx_routes_config_pattern }}"
+    file_type: file
+  register: infrastructure_reset_nginx_route_configs
+
+- name: Remove managed project Nginx route configurations
   ansible.builtin.file:
-    path: "{{ infrastructure_reset_nginx_cache_dir }}"
+    path: "{{ item.path }}"
     state: absent
+  loop: "{{ infrastructure_reset_nginx_route_configs.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
-- name: Remove Let's Encrypt certificates and renewal configuration
+- name: Remove project Nginx caches
   ansible.builtin.file:
-    path: /etc/letsencrypt
+    path: "{{ item }}"
     state: absent
-
-- name: Remove UFW configuration
-  ansible.builtin.file:
-    path: /etc/ufw
-    state: absent
-
-- name: Remove deployment users and their home directories
-  ansible.builtin.user:
-    name: "{{ item.name }}"
-    state: absent
-    remove: true
-    force: true
-  loop: "{{ deployment_access_users | default([{'name': ssh_inventory.deploy_user}]) }}"
-
-- name: Remove Docker group
-  ansible.builtin.group:
-    name: docker
-    state: absent
+  loop: "{{ infrastructure_reset_nginx_cache_paths }}"

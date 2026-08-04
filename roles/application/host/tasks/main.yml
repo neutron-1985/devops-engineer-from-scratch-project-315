@@ -1,4 +1,5 @@
 ---
+
 - name: Create application persistent directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -15,5 +16,26 @@
       owner: "{{ app_container_uid }}"
       group: "{{ app_container_gid }}"
       mode: "0750"
+    - path: "{{ app_log_dir }}"
+      owner: "{{ app_container_uid }}"
+      group: "{{ app_container_gid }}"
+      mode: "0750"
   loop_control:
     label: "{{ item.path }}"
+
+- name: Configure application log rotation
+  ansible.builtin.copy:
+    dest: "{{ app_logrotate_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {{ app_log_dir }}/application.log {
+          size {{ app_logrotate_size }}
+          rotate {{ app_logrotate_rotate }}
+          compress
+          delaycompress
+          copytruncate
+          missingok
+          notifempty
+      }

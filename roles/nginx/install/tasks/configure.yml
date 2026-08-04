@@ -1,12 +1,75 @@
 ---
-- name: Validate Nginx bootstrap settings
+- name: Validate Nginx container settings
   ansible.builtin.assert:
     that:
       - nginx_main_config_path | length > 0
+      - nginx_config_dir | length > 0
+      - nginx_bootstrap_config_path | length > 0
+      - nginx_routes_config_pattern | length > 0
       - nginx_listen_port | string | length > 0
-    fail_msg: Nginx installation requires a main configuration path and a listen port.
+      - nginx_image | length > 0
+      - nginx_container_name | length > 0
+      - nginx_log_dir | length > 0
+      - nginx_log_options is mapping
+      - nginx_healthcheck is mapping
+    fail_msg: Nginx container requires valid paths, image, logging, and healthcheck settings.
 
-- name: Replace the distribution Nginx configuration
+- name: Prepare host directories for Nginx bind mounts
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ nginx_config_dir }}"
+      owner: root
+      group: root
+      mode: "0755"
+    - path: "{{ nginx_cache_root_dir }}"
+      owner: "{{ nginx_container_uid }}"
+      group: "{{ nginx_container_gid }}"
+      mode: "0750"
+    - path: "{{ nginx_log_dir }}"
+      owner: "{{ nginx_container_uid }}"
+      group: "{{ nginx_container_gid }}"
+      mode: "0750"
+    - path: "{{ acme_challenge_webroot }}"
+      owner: root
+      group: root
+      mode: "0755"
+    - path: "{{ certbot_config_dir }}"
+      owner: root
+      group: root
+      mode: "0755"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Configure Nginx log rotation
+  ansible.builtin.copy:
+    dest: "{{ nginx_logrotate_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {{ nginx_log_dir }}/*.log {
+          size {{ nginx_logrotate_size }}
+          rotate {{ nginx_logrotate_rotate }}
+          compress
+          delaycompress
+          copytruncate
+          missingok
+          notifempty
+      }
+
+- name: Inspect managed environment route configurations
+  ansible.builtin.find:
+    paths: "{{ nginx_config_dir }}"
+    patterns: "{{ nginx_routes_config_pattern }}"
+    file_type: file
+  register: nginx_install_routes_config
+
+- name: Install stable Nginx main configuration
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: "{{ nginx_main_config_path }}"
@@ -15,36 +78,59 @@
     mode: "0644"
   register: nginx_install_main_config
 
-- name: Validate minimal Nginx configuration
-  ansible.builtin.command: nginx -t
+- name: Remove stale bootstrap virtual host after routes exist
+  ansible.builtin.file:
+    path: "{{ nginx_bootstrap_config_path }}"
+    state: absent
+  register: nginx_install_stale_bootstrap
+  when: nginx_install_routes_config.matched | int > 0
+
+- name: Install bootstrap virtual host before routes exist
+  ansible.builtin.template:
+    src: bootstrap.conf.j2
+    dest: "{{ nginx_bootstrap_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: nginx_install_bootstrap_config
+  when: nginx_install_routes_config.matched | int == 0
+
+- name: Run healthy Nginx container
+  community.docker.docker_container:
+    name: "{{ nginx_container_name }}"
+    image: "{{ nginx_image }}"
+    state: healthy
+    healthy_wait_timeout: 60
+    restart_policy: always
+    pull: missing
+    network_mode: host
+    log_driver: "{{ nginx_log_driver }}"
+    log_options: "{{ nginx_log_options }}"
+    healthcheck: "{{ nginx_healthcheck }}"
+    volumes:
+      - "{{ nginx_main_config_path }}:{{ nginx_container_main_config_path }}:ro"
+      - "{{ nginx_config_dir }}:{{ nginx_container_config_dir }}:ro"
+      - "{{ certbot_config_dir }}:{{ nginx_container_certificates_dir }}:ro"
+      - "{{ acme_challenge_webroot }}:{{ acme_challenge_webroot }}:ro"
+      - "{{ nginx_cache_root_dir }}:{{ nginx_container_cache_dir }}"
+      - "{{ nginx_log_dir }}:{{ nginx_container_log_dir }}"
+  register: nginx_install_container
+
+- name: Validate minimal Nginx container configuration
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -t
   changed_when: false
+  when: not ansible_check_mode
 
-- name: Inspect Nginx service state after configuration
-  ansible.builtin.service_facts:
-
-- name: Remember whether Nginx is running
-  ansible.builtin.set_fact:
-    nginx_install_service_is_running: >-
-      {{
-        ansible_facts.services.get('nginx.service', {}).get('state', '')
-        == 'running'
-      }}
-
-- name: Reload running Nginx after configuration change
-  ansible.builtin.service:
-    name: nginx
-    state: reloaded
+- name: Reload Nginx container after configuration change
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -s reload
   when:
-    - nginx_install_service_is_running | bool
-    - nginx_install_main_config.changed
-
-- name: Start Nginx when it is not running
-  ansible.builtin.service:
-    name: nginx
-    state: started
-  when: not (nginx_install_service_is_running | bool)
-
-- name: Enable Nginx at boot
-  ansible.builtin.service:
-    name: nginx
-    enabled: true
+    - not ansible_check_mode
+    - not nginx_install_container.changed
+    - >-
+      nginx_install_main_config.changed
+      or (nginx_install_bootstrap_config.changed | default(false))
+      or (nginx_install_stale_bootstrap.changed | default(false))

@@ -1,12 +1,13 @@
 ---
-- name: Require explicit infrastructure reset confirmation
+- name: Validate full project reset request
   ansible.builtin.assert:
     that:
       - infrastructure_reset_confirm | bool
+      - reset_mode in ['soft', 'hard']
     fail_msg: >-
-      Infrastructure reset destroys project containers, persistent data,
-      deployment users, firewall rules, Docker, and UFW. Set
-      infrastructure_reset_confirm=true to continue.
+      Full project reset requires explicit confirmation and reset_mode set to
+      soft or hard. Hard mode destroys persistent resources owned by this
+      project but preserves the container runtime and unrelated workloads.
 
 - name: Check whether Docker daemon is available
   ansible.builtin.command:
@@ -20,26 +21,37 @@
   changed_when: false
   failed_when: false
 
-- name: Collect installed package facts
-  ansible.builtin.package_facts:
-    manager: auto
+- name: Discover project containers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - ps
+      - --all
+      - --format
+      - "{{ '{{' }}.Names{{ '}}' }}"
+  register: infrastructure_reset_container_scan
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  when: infrastructure_reset_docker_info.rc == 0
 
-- name: Disable UFW before destructive cleanup
-  community.general.ufw:
-    state: disabled
-  when: "'ufw' in ansible_facts.packages"
+- name: Stop or remove project containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: "{{ 'stopped' if reset_mode == 'soft' else 'absent' }}"
+    keep_volumes: true
+  loop: >-
+    {{ infrastructure_reset_container_scan.stdout_lines | default([])
+       | select('match', infrastructure_reset_project_container_pattern)
+       | list }}
+  when: infrastructure_reset_docker_info.rc == 0
 
-- name: Reset application resources
-  ansible.builtin.include_tasks: application.yml
-  when: "'application' in group_names"
+- name: Remove project-owned persistent resources
+  ansible.builtin.import_tasks: project_paths.yml
+  when: reset_mode == 'hard'
 
-- name: Reset PostgreSQL resources
-  ansible.builtin.include_tasks: database.yml
-  when: "'database' in group_names"
-
-- name: Reset object-storage resources
-  ansible.builtin.include_tasks: object_storage.yml
-  when: "'object_storage' in group_names"
-
-- name: Reset common host resources
+- name: Remove shared project gateway resources
   ansible.builtin.import_tasks: common.yml
+  when:
+    - reset_mode == 'hard'
+    - "'application' in group_names"

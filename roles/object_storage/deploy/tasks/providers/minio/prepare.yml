@@ -7,6 +7,31 @@
     group: "{{ minio_container_gid }}"
     mode: "0750"
 
+- name: Create MinIO log directory
+  ansible.builtin.file:
+    path: "{{ minio_log_dir }}"
+    state: directory
+    owner: "{{ minio_container_uid }}"
+    group: "{{ minio_container_gid }}"
+    mode: "0750"
+
+- name: Configure MinIO log rotation
+  ansible.builtin.copy:
+    dest: "{{ minio_logrotate_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      {{ minio_log_dir }}/minio.log {
+          size {{ minio_logrotate_size }}
+          rotate {{ minio_logrotate_rotate }}
+          compress
+          delaycompress
+          copytruncate
+          missingok
+          notifempty
+      }
+
 - name: Create MinIO configuration directory
   ansible.builtin.file:
     path: "{{ minio_config_dir }}"

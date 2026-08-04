@@ -1,4 +1,13 @@
 ---
-tls_certificate_renewal_certificate_name: "{{ nginx_server_name }}"
-tls_certificate_renewal_deploy_hook: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
-tls_certificate_renewal_timer_unit: certbot.timer
+tls_certificate_renewal_certificate_name: "{{ tls_gateway_certificate_name }}"
+tls_certificate_renewal_image: "{{ certbot_image | default('certbot/certbot:v5.6.0') }}"
+tls_certificate_renewal_container_name: "{{ (certbot_container_name | default('project-devops-certbot')) ~ '-renew' }}"
+tls_certificate_renewal_config_dir: "{{ certbot_config_dir | default('/etc/letsencrypt') }}"
+tls_certificate_renewal_work_dir: "{{ certbot_work_dir | default('/var/lib/letsencrypt') }}"
+tls_certificate_renewal_log_dir: "{{ certbot_log_dir | default('/var/log/project-devops-certbot') }}"
+tls_certificate_renewal_webroot: "{{ acme_challenge_webroot }}"
+tls_certificate_renewal_service_unit: "{{ certbot_renewal_service_unit | default('project-devops-certbot-renew.service') }}"
+tls_certificate_renewal_timer_unit: "{{ certbot_renewal_timer_unit | default('project-devops-certbot-renew.timer') }}"
+tls_certificate_renewal_service_path: "/etc/systemd/system/{{ tls_certificate_renewal_service_unit }}"
+tls_certificate_renewal_timer_path: "/etc/systemd/system/{{ tls_certificate_renewal_timer_unit }}"
+tls_certificate_renewal_max_log_backups: 5

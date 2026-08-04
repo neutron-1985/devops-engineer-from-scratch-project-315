@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: tls_certificate
+  author: neutron-1985
+  description: Issues TLS certificates with a persistent one-shot Certbot container
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - tls
+    - certbot
+
+dependencies: []

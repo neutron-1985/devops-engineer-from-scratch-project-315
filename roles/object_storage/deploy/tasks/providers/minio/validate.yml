@@ -4,7 +4,13 @@
     that:
       - minio_container_uid | string is match('^[1-9][0-9]*$')
       - minio_container_gid | string is match('^[1-9][0-9]*$')
+      - minio_log_dir | length > 0
+      - minio_container_log_dir | length > 0
+      - minio_container_log_file | length > 0
+      - minio_container_entrypoint | length > 0
+      - minio_logrotate_size | length > 0
+      - minio_logrotate_rotate | int > 0
     fail_msg: >-
-      MinIO must run with a non-root UID/GID.
+      MinIO must run with a non-root UID/GID and valid file logging settings.
   no_log: true
 

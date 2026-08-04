@@ -8,13 +8,29 @@
     restart_policy: always
     pull: missing
     network_mode: host
+    log_driver: "{{ object_storage_log_driver }}"
+    log_options: "{{ object_storage_log_options }}"
     user: "{{ minio_container_uid }}:{{ minio_container_gid }}"
-    command: server /data
+    entrypoint: "{{ minio_container_entrypoint }}"
+    healthcheck:
+      test:
+        - CMD
+        - mc
+        - ready
+        - local
+      interval: "{{ object_storage_container_healthcheck_interval }}"
+      timeout: "{{ object_storage_container_healthcheck_timeout }}"
+      retries: "{{ object_storage_container_healthcheck_retries }}"
+      start_period: "{{ object_storage_container_healthcheck_start_period }}"
     volumes:
       - "{{ minio_data_dir }}:/data"
+      - "{{ minio_log_dir }}:{{ minio_container_log_dir }}"
     env:
+      MINIO_LOG_FILE: "{{ minio_container_log_file }}"
       MINIO_ROOT_USER: "{{ object_storage_admin_access_key }}"
       MINIO_ROOT_PASSWORD: "{{ object_storage_admin_secret_key }}"
+      MC_HOST_local: >-
+        http://{{ object_storage_admin_access_key }}:{{ object_storage_admin_secret_key }}@127.0.0.1:{{ object_storage_deploy_api_port }}
       MINIO_ADDRESS: ":{{ object_storage_deploy_api_port }}"
       MINIO_CONSOLE_ADDRESS: >-
         {{ object_storage_console_bind_address }}:{{ object_storage_console_port }}

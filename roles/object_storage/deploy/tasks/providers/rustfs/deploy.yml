@@ -8,10 +8,25 @@
     restart_policy: always
     pull: missing
     network_mode: host
+    log_driver: "{{ object_storage_log_driver }}"
+    log_options: "{{ object_storage_log_options }}"
     user: "{{ rustfs_container_uid }}:{{ rustfs_container_gid }}"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --show-error
+        - "http://127.0.0.1:{{ object_storage_deploy_api_port }}/health"
+      interval: "{{ object_storage_container_healthcheck_interval }}"
+      timeout: "{{ object_storage_container_healthcheck_timeout }}"
+      retries: "{{ object_storage_container_healthcheck_retries }}"
+      start_period: "{{ object_storage_container_healthcheck_start_period }}"
     command: /data
     volumes:
       - "{{ rustfs_data_dir }}:/data"
+      - "{{ rustfs_log_dir }}:{{ rustfs_container_log_dir }}"
     env:
       RUSTFS_ACCESS_KEY: "{{ object_storage_admin_access_key }}"
       RUSTFS_SECRET_KEY: "{{ object_storage_admin_secret_key }}"
@@ -20,6 +35,7 @@
         {{ 'true' if object_storage_deploy_console_enabled | bool else 'false' }}
       RUSTFS_CONSOLE_ADDRESS: >-
         {{ object_storage_console_bind_address }}:{{ object_storage_console_port }}
+      RUSTFS_OBS_LOG_DIRECTORY: "{{ rustfs_container_log_dir }}"
   no_log: true
 
 - name: Wait until RustFS is ready

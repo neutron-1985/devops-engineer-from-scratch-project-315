@@ -4,3 +4,8 @@ postgresql_database: "{{ database_name }}"
 postgresql_user: "{{ database_username }}"
 postgresql_password: "{{ database_password }}"
 postgresql_port: "{{ database_port }}"
+postgresql_container_log_dir: /var/log/postgresql
+postgresql_log_driver: json-file
+postgresql_log_options:
+  max-size: 10m
+  max-file: "5"

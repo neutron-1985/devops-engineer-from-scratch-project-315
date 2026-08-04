@@ -1,0 +1,34 @@
+---
+- name: Remove legacy combined Nginx route configuration
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_routes_config_path }}"
+    state: absent
+  register: nginx_environment_legacy_route_cleanup
+
+- name: Inspect managed Nginx environment route configurations
+  ansible.builtin.find:
+    paths: "{{ nginx_config_dir }}"
+    patterns: "{{ nginx_routes_config_pattern }}"
+    file_type: file
+  register: nginx_environment_route_config_scan
+  when: nginx_route_scope == 'all'
+
+- name: Remove obsolete Nginx environment route configurations
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ nginx_environment_route_config_scan.files
+       | default([])
+       | map(attribute='path')
+       | difference(nginx_virtual_hosts | map(attribute='config_path') | list) }}
+  loop_control:
+    label: "{{ item | basename }}"
+  register: nginx_environment_routes_cleanup
+  when: nginx_route_scope == 'all'
+
+- name: Record Nginx environment route cleanup state
+  ansible.builtin.set_fact:
+    nginx_environment_routes_changed: >-
+      {{ nginx_environment_legacy_route_cleanup.changed
+         or nginx_environment_routes_cleanup.changed | default(false) }}

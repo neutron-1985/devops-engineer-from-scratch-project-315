@@ -25,5 +25,6 @@
   when:
     - object_storage_provider_switch_initial_transition | bool
     - object_storage_provider_switch_remove_legacy_bulletins | bool
+    - object_storage_provider_switch_application_container.exists
   no_log: true
 

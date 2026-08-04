@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: tls_smoke_test
+  author: neutron-1985
+  description: Verifies HTTPS, TLS policy, and the certificate renewal timer
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - tls
+    - testing
+
+dependencies: []

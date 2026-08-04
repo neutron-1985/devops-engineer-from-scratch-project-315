@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: nginx_environment_routes
+  author: neutron-1985
+  description: Discovers environment identities and builds Nginx routing data
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - nginx
+    - routing
+
+dependencies: []

@@ -2,15 +2,35 @@
 - name: Prepare Nginx cache directories
   ansible.builtin.import_tasks: directories.yml
 
-- name: Add cache zones and cached locations
+- name: Publish cached application routes by environment
   ansible.builtin.template:
     src: nginx.conf.j2
-    dest: "{{ nginx_main_config_path }}"
+    dest: "{{ virtual_host.config_path }}"
     owner: root
     group: root
     mode: "0644"
-  notify: Reload Nginx after cache configuration
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    loop_var: virtual_host
+    label: "{{ virtual_host.name }}"
+  register: nginx_cache_routes
+
+- name: Clean obsolete Nginx environment routes
+  ansible.builtin.include_role:
+    name: nginx/environment_routes
+    tasks_from: cleanup
 
 - name: Validate Nginx cache configuration
-  ansible.builtin.command: nginx -t
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -t
   changed_when: false
+  when: not ansible_check_mode
+
+- name: Reload Nginx container after cache configuration
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -s reload
+  when:
+    - not ansible_check_mode
+    - nginx_cache_routes.changed or nginx_environment_routes_changed | bool

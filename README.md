@@ -16,7 +16,9 @@ Production:
 
 The project manages `dev`, `stage`, and `prod` on shared physical hosts. Each
 environment has isolated application, PostgreSQL, and S3-compatible storage
-containers and data.
+containers and data. A shared host-networked Nginx container publishes
+independently managed environment routes, while one-shot Certbot containers
+issue and renew certificates.
 
 | Environment | Domain | Application | PostgreSQL | S3 API |
 |---|---|---:|---:|---:|
@@ -65,20 +67,39 @@ $EDITOR .vault-password
 
 | Command | Purpose |
 |---|---|
+| `make all ENVIRONMENT=stage` | Provision dependencies and deploy one environment completely |
 | `make infra-preview ENVIRONMENT=stage` | Preview changes on prepared infrastructure |
 | `make infra-apply ENVIRONMENT=stage` | Reconcile infrastructure for one environment |
-| `make infra-apply-all` | Reconcile all environments |
 | `make ansible-check ENVIRONMENT=stage` | Check a deployment without applying it |
 | `make deploy ENVIRONMENT=stage` | Deploy the tag recorded in inventory |
 | `make rollback ENVIRONMENT=stage` | Swap the active and previous application runtimes |
 | `make smoke` | Run service smoke tests |
 | `make cache-check` | Verify Nginx asset and upload caching |
-| `make tls-check` | Verify HTTPS and certificate renewal |
-| `make reset ENVIRONMENT=stage` | Remove resources belonging to one environment |
-| `make reset` | Remove all project infrastructure and data |
+| `make tls-check` | Verify HTTPS, TLS policy, and the renewal timer |
+| `make reset ENVIRONMENT=stage RESET_MODE=soft` | Stop stage containers and preserve persistent data and logs |
+| `make reset RESET_MODE=soft` | Stop all project environments and preserve persistent data and logs |
+| `make reset ENVIRONMENT=stage` | Hard-reset resources belonging to stage |
+| `make reset` | Hard-reset all environments and shared resources owned by this project |
+| `make vault-rekey` | Change the password protecting the shared Ansible Vault |
 
-`make reset` is destructive. The environment-specific form leaves shared
-services and other environments intact.
+`make all` processes only the selected environment; without `ENVIRONMENT`, it
+deploys `dev`. Reset uses hard mode by default and accepts only `soft` or `hard`
+as `RESET_MODE`.
+
+Soft reset stops only the selected project containers and preserves persistent
+data, mounted logs, active service container logs, Nginx routes, certificates,
+firewall rules, and local facts. A subsequent `make all` starts or recreates
+the runtime on the preserved state.
+
+Hard environment reset removes the selected project containers, Nginx route,
+data, logs, caches, firewall rules, and local facts. The unqualified hard reset
+applies this to `dev`, `stage`, and `prod`, then removes the shared Nginx
+routes, caches, gateway container, gateway logs, and Certbot renewal timer.
+Issued TLS certificates are preserved to avoid unnecessary ACME reissuance
+and rate limits.
+
+Docker, containerd, UFW, deployment users, unrelated containers, images,
+volumes, and observability data are always preserved.
 
 ## Application deployment
 
@@ -103,8 +124,10 @@ tags that do not identify a commit.
 
 ## GitHub Actions release
 
-After a pull request reaches `main`, the `Release` workflow runs when one or
-more environment `vars.yml` files changed.
+After a pull request reaches `main`, the `Release` workflow runs when an
+environment tag or deployment configuration changes. Deployment configuration
+includes shared inventory, roles, playbooks, Ansible dependencies, the
+Makefile, and the release workflows themselves.
 
 The changed inventories are evaluated in fixed priority order:
 
@@ -127,6 +150,13 @@ uses the tag from `dev` for the complete chain. The selected tag is passed as
 an explicit Ansible override; the per-environment tags remain independent in
 their own `vars.yml` files.
 
+A configuration-only change reconciles `dev`, `stage`, and `prod` in order,
+using each environment's own committed image tag. For a mixed change, lower
+environments keep their own tags while the release source and every higher
+environment use the selected promotion tag. For example, a role change combined
+with a stage tag update reconciles dev with its current tag and promotes the
+stage tag through stage and prod.
+
 Each deployment checks out the same triggering commit. A later push cannot
 replace the selected tag in a running or approval-waiting workflow.
 
@@ -145,20 +175,39 @@ is in progress.
 
 ## Provisioning stages
 
-The root `playbook.yml` imports five incremental project steps:
+The root `playbook.yml` implements a complete deployment through five
+orchestration layers:
 
-1. `make step-01` — application with local storage.
-2. `make step-02` — PostgreSQL, migrations, and the production Spring profile.
-3. `make step-03` — S3-compatible object storage.
-4. `make step-04` — Nginx reverse proxy, uploads, caching, and firewall policy.
+1. `infrastructure.yml` — prepare common host prerequisites and the containerized Nginx gateway.
+2. `provision.yml` — start and initialize PostgreSQL and object storage.
+3. `runtime.yml` — apply database migrations and deploy the application.
+4. `gateway.yml` — publish the selected environment route through Nginx and TLS.
+5. `verify.yml` — run database, storage, cache, and TLS smoke tests.
+
+The numbered Make targets provide the alternative incremental project flow:
+
+1. `make step-01` — prepare the application server infrastructure without deploying the application.
+2. `make step-02` — provision PostgreSQL and verify its persistence.
+3. `make step-03` — provision S3-compatible storage, migrate the database,
+   and deploy the application with the production profile and S3 backend.
+4. `make step-04` — publish the application through Nginx and verify storage
+   and cache behavior.
 5. `make step-05` — one SAN certificate and HTTPS for all environments.
+
+`make all ENVIRONMENT=<name>` for a complete environment deployment.
+Per-environment commands update only their selected route and preserve routes
+already published for other environments.
 
 Use the steps for incremental verification or `make all` for a complete build.
 Each step assumes the preceding steps have completed.
 
+The application starts only after PostgreSQL and object storage are ready. It
+is bound to loopback and uses its final `prod`/S3 configuration from the first
+start, so provisioning never exposes a temporary local-data runtime.
+
 Project roles are grouped by domain under `roles/`: `common`, `application`,
 `database`, `object_storage`, `nginx`, and `tls`. Playbooks reference nested
-roles by paths such as `database/service`. The `playbooks/steps/roles` symlink
+roles by paths such as `database/service`. The `playbooks/roles` symlink
 exposes the same role root to CI runners.
 
 ## Verification and recovery
@@ -181,6 +230,39 @@ Nginx redirects HTTP to HTTPS and exposes application traffic only through
 ports `80` and `443`. Application and management ports remain bound to
 loopback. Uploaded files are served through `/uploads/`; frontend assets and
 uploads are cached and verified by `make cache-check`.
+
+The main `/etc/nginx/nginx.conf` is stable and includes managed virtual-host
+configuration from `/etc/nginx/conf.d`. Both paths are stored on the host and
+mounted read-only into the host-networked Nginx container. Cache, certificate,
+ACME webroot, and log directories are mounted separately. Every generated
+configuration is validated inside the container with `nginx -t` before reload.
+
+Long-running application, PostgreSQL, object-storage, and Nginx containers
+have Docker healthchecks. Ansible also waits for service readiness before
+starting dependent deployment stages.
+
+## Logs
+
+Service logs are persisted on the managed hosts. The environment suffix is
+`-dev` or `-stage` and is empty for `prod`.
+
+| Service | Host path |
+|---|---|
+| Application | `/var/log/project-devops-deploy<suffix>/application.log` |
+| PostgreSQL | `/var/log/project-devops-postgresql<suffix>/postgresql-<weekday>.log` |
+| MinIO | `/var/log/project-devops-minio<suffix>/minio.log` |
+| RustFS | `/var/log/project-devops-rustfs<suffix>/` |
+| Nginx access | `/var/log/project-devops-nginx/access.log` |
+| Nginx errors | `/var/log/project-devops-nginx/error.log` |
+| Certbot | `/var/log/project-devops-certbot/` |
+
+Application and MinIO stdout and stderr are redirected to their mounted log
+files. Nginx writes access and error logs into its mounted log directory. Host
+`logrotate` rotates these files at 10 MiB, keeps five compressed archives, and
+uses `copytruncate` so containers do not need to restart. PostgreSQL rotates its
+mounted log daily, and Certbot keeps bounded log backups in its mounted directory.
+Docker `json-file` output for long-running containers is additionally bounded to
+five 10 MiB files.
 
 The selected S3-compatible provider is configured with
 `object_storage_provider` in shared vars. Credentials remain in Ansible Vault;

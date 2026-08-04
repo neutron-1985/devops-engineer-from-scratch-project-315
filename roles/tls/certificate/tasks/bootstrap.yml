@@ -1,35 +1,133 @@
 ---
-- name: Verify that Nginx is installed for HTTP-01
-  ansible.builtin.command: nginx -v
-  changed_when: false
+- name: Inspect Nginx container for HTTP-01
+  community.docker.docker_container_info:
+    name: "{{ nginx_container_name }}"
+  register: tls_certificate_nginx_container
 
-- name: Create ACME challenge webroot
+- name: Require running Nginx container for HTTP-01
+  ansible.builtin.assert:
+    that:
+      - tls_certificate_nginx_container.exists or ansible_check_mode
+      - >-
+        not tls_certificate_nginx_container.exists
+        or tls_certificate_nginx_container.container.State.Running | bool
+        or ansible_check_mode
+    fail_msg: Start the Nginx gateway container before issuing a certificate.
+
+- name: Disable legacy host Certbot timer
+  ansible.builtin.systemd:
+    name: certbot.timer
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Install certificate inspection utility
+  ansible.builtin.apt:
+    name: openssl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Remove legacy host Certbot package
+  ansible.builtin.apt:
+    name: certbot
+    state: absent
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create persistent Certbot directories
   ansible.builtin.file:
-    path: "{{ tls_certificate_webroot }}"
+    path: "{{ item.path }}"
     state: directory
     owner: root
-    group: www-data
-    mode: "0755"
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ tls_certificate_webroot }}"
+      mode: "0755"
+    - path: "{{ tls_certificate_config_dir }}"
+      mode: "0700"
+    - path: "{{ tls_certificate_work_dir }}"
+      mode: "0700"
+    - path: "{{ tls_certificate_log_dir }}"
+      mode: "0750"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Check whether the TLS certificate already exists
   ansible.builtin.stat:
-    path: "/etc/letsencrypt/live/{{ tls_certificate_name }}/fullchain.pem"
+    path: "{{ tls_certificate_config_dir }}/live/{{ tls_certificate_name }}/fullchain.pem"
   register: tls_certificate_existing
 
-- name: Install HTTP ACME bootstrap configuration
+- name: Inspect existing certificate domains
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - x509
+      - -in
+      - "{{ tls_certificate_config_dir }}/live/{{ tls_certificate_name }}/fullchain.pem"
+      - -noout
+      - -ext
+      - subjectAltName
+  register: tls_certificate_details
+  changed_when: false
+  when: tls_certificate_existing.stat.exists
+
+- name: Collect existing certificate domains
+  ansible.builtin.set_fact:
+    tls_certificate_existing_domains: >-
+      {{ tls_certificate_details.stdout | default('')
+         | regex_findall('DNS:([A-Za-z0-9.*-]+)') }}
+
+- name: Decide whether certificate issuance or expansion is required
+  ansible.builtin.set_fact:
+    tls_certificate_effective_domains: >-
+      {{ tls_certificate_existing_domains | union(tls_certificate_domains) | unique }}
+    tls_certificate_requires_issue: >-
+      {{ not tls_certificate_existing.stat.exists
+         or tls_certificate_domains
+            | difference(tls_certificate_existing_domains)
+            | length > 0 }}
+
+- name: Install HTTP ACME bootstrap configurations by environment
   ansible.builtin.template:
     src: nginx-acme-bootstrap.conf.j2
-    dest: "{{ nginx_main_config_path }}"
+    dest: "{{ virtual_host.config_path }}"
     owner: root
     group: root
     mode: "0644"
-  notify: Reload Nginx after ACME bootstrap
-  when:
-    - not tls_certificate_existing.stat.exists
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    loop_var: virtual_host
+    label: "{{ virtual_host.name }}"
+  register: tls_certificate_bootstrap_routes
+  when: not tls_certificate_existing.stat.exists
+
+- name: Clean obsolete Nginx environment routes
+  ansible.builtin.include_role:
+    name: nginx/environment_routes
+    tasks_from: cleanup
+
+- name: Remove installation bootstrap virtual host
+  ansible.builtin.file:
+    path: "{{ nginx_bootstrap_config_path }}"
+    state: absent
+  register: tls_certificate_install_bootstrap
 
 - name: Validate HTTP ACME bootstrap configuration
-  ansible.builtin.command: nginx -t
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -t
   changed_when: false
+  when: not ansible_check_mode
 
-- name: Apply HTTP ACME bootstrap configuration
-  ansible.builtin.meta: flush_handlers
+- name: Reload Nginx container with HTTP ACME bootstrap
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -s reload
+  when:
+    - not ansible_check_mode
+    - >-
+      (tls_certificate_bootstrap_routes.changed | default(false))
+      or nginx_environment_routes_changed | bool
+      or tls_certificate_install_bootstrap.changed

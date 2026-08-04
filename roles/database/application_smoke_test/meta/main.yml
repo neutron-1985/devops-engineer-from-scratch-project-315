@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: database_application_smoke_test
+  author: neutron-1985
+  description: Verifies database connectivity through the deployed application
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - database
+    - testing
+
+dependencies: []

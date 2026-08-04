@@ -4,3 +4,6 @@ environments/_shared/runtime/
 environments/*/inventory/hosts.yml
 .vault-password
 .vault-password.new
+/compose.mermaid.yml
+/mmd.generate
+/playbook.mmd

@@ -1,12 +1,13 @@
 ---
-- name: Require explicit environment reset confirmation
+- name: Validate environment reset request
   ansible.builtin.assert:
     that:
       - environment_reset_confirm | bool
+      - reset_mode in ['soft', 'hard']
     fail_msg: >-
-      Environment reset destroys the selected application, database data,
-      bucket, credentials, and caches. Set environment_reset_confirm=true
-      to continue.
+      Environment reset requires explicit confirmation and reset_mode set to
+      soft or hard. Hard mode destroys persistent resources of the selected
+      environment.
 
 - name: Check whether Docker daemon is available
   ansible.builtin.command:
@@ -19,6 +20,31 @@
   check_mode: false
   changed_when: false
   failed_when: false
+
+- name: Discover existing containers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - ps
+      - --all
+      - --format
+      - "{{ '{{' }}.Names{{ '}}' }}"
+  register: environment_reset_container_names
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  when: environment_reset_docker_info.rc == 0
+
+- name: Check whether UFW is available
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - status
+  register: environment_reset_ufw_info
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  when: reset_mode == 'hard'
 
 - name: Reset selected application resources
   ansible.builtin.include_tasks: application.yml

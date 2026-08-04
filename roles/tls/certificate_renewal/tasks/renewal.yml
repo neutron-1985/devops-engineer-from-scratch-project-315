@@ -1,23 +1,44 @@
 ---
-- name: Create Certbot deploy-hook directory
+- name: Disable legacy Certbot timer
+  ansible.builtin.systemd:
+    name: certbot.timer
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Ensure Certbot renewal image is available
+  community.docker.docker_image:
+    name: "{{ tls_certificate_renewal_image }}"
+    source: pull
+
+- name: Remove legacy host Certbot deploy hook
   ansible.builtin.file:
-    path: "{{ tls_certificate_renewal_deploy_hook | dirname }}"
-    state: directory
+    path: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+    state: absent
+
+- name: Install containerized Certbot renewal service
+  ansible.builtin.template:
+    src: certbot-renew.service.j2
+    dest: "{{ tls_certificate_renewal_service_path }}"
     owner: root
     group: root
-    mode: "0755"
+    mode: "0644"
+  register: tls_certificate_renewal_service
 
-- name: Install Nginx reload hook for renewed certificates
-  ansible.builtin.copy:
-    src: reload-nginx
-    dest: "{{ tls_certificate_renewal_deploy_hook }}"
+- name: Install containerized Certbot renewal timer
+  ansible.builtin.template:
+    src: certbot-renew.timer.j2
+    dest: "{{ tls_certificate_renewal_timer_path }}"
     owner: root
     group: root
-    mode: "0755"
+    mode: "0644"
+  register: tls_certificate_renewal_timer
 
-- name: Enable and start automatic certificate renewal
+- name: Enable and start containerized certificate renewal timer
   ansible.builtin.systemd:
     name: "{{ tls_certificate_renewal_timer_unit }}"
     state: started
     enabled: true
-    daemon_reload: true
+    daemon_reload: >-
+      {{ tls_certificate_renewal_service.changed or tls_certificate_renewal_timer.changed }}
+  when: not ansible_check_mode

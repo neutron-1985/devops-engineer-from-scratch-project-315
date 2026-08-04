@@ -1,6 +1,6 @@
 ---
-- name: Install Nginx
+- name: Prepare Nginx container host
   ansible.builtin.import_tasks: install.yml
 
-- name: Configure minimal Nginx
+- name: Configure minimal Nginx container
   ansible.builtin.import_tasks: configure.yml

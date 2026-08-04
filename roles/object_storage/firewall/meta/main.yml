@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: object_storage_firewall
+  author: neutron-1985
+  description: Configures firewall access to S3-compatible object storage services
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - storage
+    - firewall
+
+dependencies: []

@@ -1,16 +1,33 @@
 ---
-- name: Add TLS configuration
+- name: Publish HTTPS routes by environment
   ansible.builtin.template:
     src: nginx.conf.j2
-    dest: "{{ nginx_main_config_path }}"
+    dest: "{{ virtual_host.config_path }}"
     owner: root
     group: root
     mode: "0644"
-  notify: Reload Nginx after TLS configuration
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    loop_var: virtual_host
+    label: "{{ virtual_host.name }}"
+  register: tls_nginx_routes
+
+- name: Clean obsolete Nginx environment routes
+  ansible.builtin.include_role:
+    name: nginx/environment_routes
+    tasks_from: cleanup
 
 - name: Validate TLS configuration
-  ansible.builtin.command: nginx -t
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -t
   changed_when: false
+  when: not ansible_check_mode
 
-- name: Apply TLS configuration
-  ansible.builtin.meta: flush_handlers
+- name: Reload Nginx container after TLS configuration
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -s reload
+  when:
+    - not ansible_check_mode
+    - tls_nginx_routes.changed or nginx_environment_routes_changed | bool

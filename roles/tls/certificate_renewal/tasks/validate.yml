@@ -1,15 +1,27 @@
 ---
 - name: Check issued certificate
   ansible.builtin.stat:
-    path: "/etc/letsencrypt/live/{{ tls_certificate_renewal_certificate_name }}/fullchain.pem"
+    path: "{{ tls_certificate_renewal_config_dir }}/live/{{ tls_certificate_renewal_certificate_name }}/fullchain.pem"
   register: tls_certificate_renewal_certificate
+
+- name: Inspect Nginx container for renewal reload
+  community.docker.docker_container_info:
+    name: "{{ nginx_container_name }}"
+  register: tls_certificate_renewal_nginx
 
 - name: Validate certificate renewal configuration
   ansible.builtin.assert:
     that:
-      - tls_certificate_renewal_deploy_hook | length > 0
+      - tls_certificate_renewal_image | length > 0
+      - tls_certificate_renewal_container_name | length > 0
+      - tls_certificate_renewal_config_dir | length > 0
+      - tls_certificate_renewal_work_dir | length > 0
+      - tls_certificate_renewal_log_dir | length > 0
+      - tls_certificate_renewal_webroot | length > 0
+      - tls_certificate_renewal_service_unit | length > 0
       - tls_certificate_renewal_timer_unit | length > 0
       - tls_certificate_renewal_certificate.stat.exists or ansible_check_mode
+      - tls_certificate_renewal_nginx.exists or ansible_check_mode
     fail_msg: >-
-      Certificate renewal requires an issued certificate, a systemd timer,
-      and a Certbot deploy hook.
+      Containerized certificate renewal requires an issued certificate,
+      persistent Certbot directories, a running Nginx container, and systemd units.

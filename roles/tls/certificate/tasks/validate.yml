@@ -5,9 +5,29 @@
       - tls_certificate_name | length > 0
       - tls_certificate_admin_email | length > 3
       - tls_certificate_webroot | length > 0
+      - tls_certificate_image | length > 0
+      - tls_certificate_container_name | length > 0
+      - tls_certificate_config_dir | length > 0
+      - tls_certificate_work_dir | length > 0
+      - tls_certificate_log_dir | length > 0
+      - tls_certificate_domains is sequence
+      - tls_certificate_domains | length > 0
       - nginx_server_name | length > 0
       - nginx_server_name != '_'
-      - nginx_main_config_path | length > 0
+      - nginx_routes_config_pattern | length > 0
+      - nginx_bootstrap_config_path | length > 0
+      - nginx_virtual_hosts is sequence
+      - nginx_virtual_hosts | length > 0
     fail_msg: >-
       TLS certificate issuance requires a public domain, administrator email,
-      HTTP-01 webroot, and Nginx configuration path.
+      persistent Certbot directories, and a managed Nginx container.
+
+- name: Validate TLS certificate route configuration paths
+  ansible.builtin.assert:
+    that:
+      - virtual_host.config_path | default('') | length > 0
+    fail_msg: Each TLS virtual host requires its own Nginx configuration path.
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    loop_var: virtual_host
+    label: "{{ virtual_host.name | default('unnamed') }}"

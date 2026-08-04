@@ -1,4 +1,11 @@
 ---
+- name: Validate Nginx route selection
+  ansible.builtin.assert:
+    that:
+      - nginx_route_scope in ['environment', 'all']
+      - nginx_route_scope == 'all' or nginx_route_environment | length > 0
+    fail_msg: Select one environment or request the complete Nginx route catalog.
+
 - name: Discover environment identity files
   ansible.builtin.find:
     paths: "{{ inventory_dir }}/../.."

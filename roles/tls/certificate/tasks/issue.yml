@@ -1,0 +1,35 @@
+---
+- name: Run Certbot certificate container
+  community.docker.docker_container:
+    name: "{{ tls_certificate_container_name }}"
+    image: "{{ tls_certificate_image }}"
+    state: started
+    detach: false
+    cleanup: true
+    recreate: true
+    pull: missing
+    command:
+      - certonly
+      - --webroot
+      - --webroot-path
+      - "{{ tls_certificate_webroot }}"
+      - --non-interactive
+      - --agree-tos
+      - --email
+      - "{{ tls_certificate_admin_email }}"
+      - --cert-name
+      - "{{ tls_certificate_name }}"
+      - --domains
+      - "{{ tls_certificate_effective_domains | join(',') }}"
+      - --keep-until-expiring
+      - --expand
+      - --max-log-backups
+      - "{{ tls_certificate_max_log_backups | string }}"
+    volumes:
+      - "{{ tls_certificate_config_dir }}:/etc/letsencrypt"
+      - "{{ tls_certificate_work_dir }}:/var/lib/letsencrypt"
+      - "{{ tls_certificate_log_dir }}:/var/log/letsencrypt"
+      - "{{ tls_certificate_webroot }}:{{ tls_certificate_webroot }}"
+  when:
+    - not ansible_check_mode
+    - tls_certificate_requires_issue | bool

@@ -2,12 +2,30 @@
 - name: Validate Nginx cache configuration
   ansible.builtin.assert:
     that:
-      - nginx_main_config_path | length > 0
-      - nginx_app_upstream | default('') is match('^http://')
-      - nginx_static_cache_path | default('') | length > 0
+      - nginx_routes_config_pattern | length > 0
       - nginx_static_cache_max_size | default('') | length > 0
-      - nginx_uploads_upstream | default('') is match('^https?://')
-      - nginx_uploads_bucket | default('') | length > 0
-      - nginx_uploads_cache_path | default('') | length > 0
       - nginx_uploads_cache_max_size | default('') | length > 0
-    fail_msg: Nginx cache requires a main config path, cache paths, and object-storage upstream.
+      - nginx_virtual_hosts is sequence
+      - nginx_virtual_hosts | length > 0
+    fail_msg: Nginx cache requires a routes config path, cache limits, and discovered virtual hosts.
+
+- name: Validate Nginx cache virtual hosts
+  ansible.builtin.assert:
+    that:
+      - item.app_upstream | default('') is match('^http://')
+      - item.config_path | default('') | length > 0
+      - item.static_cache_zone | default('') | length > 0
+      - item.static_cache_path | default('') | length > 0
+      - >-
+        not (item.uploads_enabled | default(false) | bool) or
+        (item.uploads_cache_zone | default('') | length > 0)
+      - >-
+        not (item.uploads_enabled | default(false) | bool) or
+        (item.uploads_cache_path | default('') | length > 0)
+      - >-
+        not (item.uploads_enabled | default(false) | bool) or
+        (item.uploads_upstream | default('') is match('^https?://'))
+    fail_msg: Each Nginx virtual host requires valid application and cache settings.
+  loop: "{{ nginx_virtual_hosts }}"
+  loop_control:
+    label: "{{ item.name | default(item.server_name | default('unknown')) }}"

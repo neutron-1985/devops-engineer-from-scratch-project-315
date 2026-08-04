@@ -6,7 +6,6 @@
     proto: tcp
     port: "{{ ssh_inventory.ssh_port }}"
     comment: "{{ firewall_policy_base_comment }}-ssh"
-  when: firewall_policy_manage_base | bool
 
 - name: Allow current public TCP ports
   community.general.ufw:
@@ -21,13 +20,11 @@
   community.general.ufw:
     direction: incoming
     policy: deny
-  when: firewall_policy_manage_base | bool
 
 - name: Set default outgoing policy to allow
   community.general.ufw:
     direction: outgoing
     policy: allow
-  when: firewall_policy_manage_base | bool
 
 - name: Revoke obsolete public TCP ports
   community.general.ufw:
@@ -42,4 +39,3 @@
 - name: Enable UFW
   community.general.ufw:
     state: enabled
-  when: firewall_policy_manage_base | bool

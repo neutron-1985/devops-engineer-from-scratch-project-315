@@ -1,19 +1,12 @@
-events {
-}
+server {
+    listen {{ nginx_listen_port }};
+    listen [::]:{{ nginx_listen_port }};
 
-http {
-{% for virtual_host in nginx_virtual_hosts %}
-    server {
-        listen {{ nginx_listen_port }};
-        listen [::]:{{ nginx_listen_port }};
+    server_name {{ virtual_host.server_name }};
 
-        server_name {{ virtual_host.server_name }};
+    default_type text/plain;
 
-        default_type text/plain;
-
-        location / {
-            proxy_pass {{ virtual_host.app_upstream }};
-        }
+    location / {
+        proxy_pass {{ virtual_host.app_upstream }};
     }
-{% endfor %}
 }

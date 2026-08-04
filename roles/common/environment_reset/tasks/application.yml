@@ -1,20 +1,66 @@
 ---
-- name: Remove selected application containers
+- name: Stop selected active application container
+  community.docker.docker_container:
+    name: "{{ app_container_name }}"
+    state: stopped
+    keep_volumes: true
+  when:
+    - reset_mode == 'soft'
+    - environment_reset_docker_info.rc == 0
+    - app_container_name in (environment_reset_container_names.stdout_lines | default([]))
+
+- name: Remove selected application runtime containers
   community.docker.docker_container:
     name: "{{ item }}"
     state: absent
-    force_kill: true
+    keep_volumes: true
   when: environment_reset_docker_info.rc == 0
-  loop:
-    - "{{ app_container_name }}"
-    - "{{ app_container_name }}-previous"
-    - "{{ app_container_name }}-rollback"
-    - "{{ database_migration_container_name }}"
+  loop: >-
+    {{ [app_container_name ~ '-previous',
+        app_container_name ~ '-rollback',
+        database_migration_container_name]
+       + ([app_container_name] if reset_mode == 'hard' else []) }}
 
-- name: Remove selected application data
+- name: Remove selected application data and logs
   ansible.builtin.file:
-    path: "{{ app_data_dir }}"
+    path: "{{ item }}"
     state: absent
+  loop:
+    - "{{ app_data_dir }}"
+    - "{{ app_log_dir }}"
+  when: reset_mode == 'hard'
+
+- name: Remove selected application log rotation configuration
+  ansible.builtin.file:
+    path: "{{ environment_reset_logrotate_config_path }}"
+    state: absent
+  when: reset_mode == 'hard'
+
+- name: Remove selected environment Nginx route
+  ansible.builtin.file:
+    path: "{{ nginx_config_dir }}/20-project-{{ environment_name }}.conf"
+    state: absent
+  register: environment_reset_nginx_route
+  when: reset_mode == 'hard'
+
+- name: Validate Nginx after selected route removal
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -t
+  changed_when: false
+  when:
+    - reset_mode == 'hard'
+    - environment_reset_nginx_route.changed
+    - nginx_container_name in (environment_reset_container_names.stdout_lines | default([]))
+
+- name: Reload Nginx after selected route removal
+  community.docker.docker_container_exec:
+    container: "{{ nginx_container_name }}"
+    command: nginx -s reload
+  when:
+    - reset_mode == 'hard'
+    - environment_reset_nginx_route.changed
+    - nginx_container_name in (environment_reset_container_names.stdout_lines | default([]))
 
 - name: Clear selected environment Nginx caches
   ansible.builtin.file:
@@ -23,22 +69,17 @@
   loop:
     - "{{ nginx_static_cache_path }}"
     - "{{ nginx_uploads_cache_path }}"
-
-- name: Check whether the Nginx runtime user exists
-  ansible.builtin.command: id -u www-data
-  register: environment_reset_nginx_user
-  check_mode: false
-  changed_when: false
-  failed_when: false
+  when: reset_mode == 'hard'
 
 - name: Recreate selected environment Nginx cache directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: www-data
-    group: www-data
+    owner: "{{ nginx_container_uid }}"
+    group: "{{ nginx_container_gid }}"
     mode: "0750"
   loop:
     - "{{ nginx_static_cache_path }}"
     - "{{ nginx_uploads_cache_path }}"
-  when: environment_reset_nginx_user.rc == 0
+  when:
+    - reset_mode == 'hard'

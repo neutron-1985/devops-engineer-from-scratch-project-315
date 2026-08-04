@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: common_firewall_policy
+  author: neutron-1985
+  description: Installs the firewall and applies the common host security policy
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - firewall
+    - security
+
+dependencies: []

@@ -8,7 +8,7 @@
     shell: /bin/bash
   loop: "{{ deployment_access_users }}"
 
-- name: Authorize deployment SSH key
+- name: Add deployment public key to authorized_keys
   ansible.posix.authorized_key:
     user: "{{ ssh_inventory.deploy_user }}"
     key: "{{ ssh_inventory.deploy_authorized_key }}"

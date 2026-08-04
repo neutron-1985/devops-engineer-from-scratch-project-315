@@ -4,6 +4,8 @@
     that:
       - rustfs_container_uid | string is match('^[1-9][0-9]*$')
       - rustfs_container_gid | string is match('^[1-9][0-9]*$')
+      - rustfs_log_dir is match('^/')
+      - rustfs_container_log_dir is match('^/')
     fail_msg: >-
       RustFS must run with a non-root UID/GID.
   no_log: true

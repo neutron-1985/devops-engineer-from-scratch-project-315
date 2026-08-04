@@ -1,30 +1,9 @@
 ---
-- name: Gather facts required by Certbot
-  ansible.builtin.setup:
-  when: ansible_os_family is not defined
-
 - name: Validate TLS certificate settings
   ansible.builtin.import_tasks: validate.yml
 
 - name: Configure HTTP-01 challenge endpoint
   ansible.builtin.import_tasks: bootstrap.yml
 
-- name: Install Certbot and issue certificates
-  ansible.builtin.include_role:
-    name: geerlingguy.certbot
-    apply:
-      tags:
-        - tls-certificate
-        - https
-  vars:
-    certbot_install_method: package
-    certbot_auto_renew: false
-    certbot_create_if_missing: true
-    certbot_create_method: webroot
-    certbot_expand: true
-    certbot_admin_email: "{{ tls_certificate_admin_email }}"
-    certbot_certs:
-      - name: "{{ tls_certificate_name }}"
-        email: "{{ tls_certificate_admin_email }}"
-        webroot: "{{ tls_certificate_webroot }}"
-        domains: "{{ tls_certificate_domains }}"
+- name: Issue or expand certificate with Certbot container
+  ansible.builtin.import_tasks: issue.yml

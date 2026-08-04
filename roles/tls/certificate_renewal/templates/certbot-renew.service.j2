@@ -1,0 +1,21 @@
+[Unit]
+Description=Renew project TLS certificates with a Certbot container
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStartPre=-/usr/bin/docker rm --force {{ tls_certificate_renewal_container_name }}
+ExecStart=/usr/bin/docker run --rm \
+  --name {{ tls_certificate_renewal_container_name }} \
+  --volume {{ tls_certificate_renewal_config_dir }}:/etc/letsencrypt \
+  --volume {{ tls_certificate_renewal_work_dir }}:/var/lib/letsencrypt \
+  --volume {{ tls_certificate_renewal_log_dir }}:/var/log/letsencrypt \
+  --volume {{ tls_certificate_renewal_webroot }}:{{ tls_certificate_renewal_webroot }} \
+  {{ tls_certificate_renewal_image }} renew --non-interactive --webroot \
+  --webroot-path {{ tls_certificate_renewal_webroot }} \
+  --max-log-backups {{ tls_certificate_renewal_max_log_backups }}
+ExecStartPost=/usr/bin/docker exec {{ nginx_container_name }} nginx -t
+ExecStartPost=/usr/bin/docker exec {{ nginx_container_name }} nginx -s reload
+TimeoutStartSec=600

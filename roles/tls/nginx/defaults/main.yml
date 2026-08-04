@@ -1,6 +1,6 @@
 ---
 tls_nginx_listen_port: "{{ nginx_https_port }}"
-tls_nginx_certificate_name: "{{ nginx_server_name }}"
+tls_nginx_certificate_name: "{{ tls_gateway_certificate_name }}"
 tls_nginx_acme_webroot: "{{ acme_challenge_webroot }}"
 tls_nginx_protocols: TLSv1.2 TLSv1.3
 tls_nginx_tls12_ciphers:

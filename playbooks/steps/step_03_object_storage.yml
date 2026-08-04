@@ -8,12 +8,13 @@
     - storage
 
   roles:
+    - role: common/host_prerequisites
     - role: geerlingguy.docker
     - role: common/deployment_access
     - role: common/firewall_policy
     - role: object_storage/firewall
       object_storage_api_allowed_cidrs: >-
-        {{ object_storage_public_api_allowed_cidrs }}
+        {{ object_storage_application_api_allowed_cidrs }}
 
   tasks:
     - name: Prepare selected object storage provider configuration
@@ -32,7 +33,7 @@
   roles:
     - role: object_storage/provider_switch
 
-- name: "Step 3 | Switch production application to S3"
+- name: "Step 3 | Migrate database and deploy application"
   hosts: application
   remote_user: "{{ ssh_inventory.deploy_user }}"
   become: false
@@ -42,18 +43,15 @@
     - storage
 
   vars:
-    app_profile: prod
-    app_s3_public_url: ""
-    app_storage_backend: s3
-    app_bind_address: 0.0.0.0
     app_active_stop_expected: >-
       {{ hostvars[groups['object_storage'] | first]
          .object_storage_provider_switch_transition_required
          | default(false) | bool }}
 
   roles:
+    - role: database/migration
     - role: application/service
-    - role: object_storage/smoke_test
+    - role: database/application_smoke_test
 
   post_tasks:
     - name: Complete the application S3 transition

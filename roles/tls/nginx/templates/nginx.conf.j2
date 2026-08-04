@@ -1,82 +1,71 @@
-user www-data;
+proxy_cache_path {{ virtual_host.static_cache_path }}
+    levels=1:2
+    keys_zone={{ virtual_host.static_cache_zone }}:10m
+    max_size={{ nginx_static_cache_max_size }}
+    inactive=7d
+    use_temp_path=off;
+{% if virtual_host.uploads_enabled | bool %}
+proxy_cache_path {{ virtual_host.uploads_cache_path }}
+    levels=1:2
+    keys_zone={{ virtual_host.uploads_cache_zone }}:20m
+    max_size={{ nginx_uploads_cache_max_size }}
+    inactive=30d
+    use_temp_path=off;
+{% endif %}
 
-events {
+server {
+    listen {{ nginx_listen_port }};
+    listen [::]:{{ nginx_listen_port }};
+
+    server_name {{ virtual_host.server_name }};
+
+    default_type text/plain;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ tls_nginx_acme_webroot }};
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
 
-http {
-{% for virtual_host in nginx_virtual_hosts %}
-    proxy_cache_path {{ virtual_host.static_cache_path }}
-        levels=1:2
-        keys_zone={{ virtual_host.static_cache_zone }}:10m
-        max_size={{ nginx_static_cache_max_size }}
-        inactive=7d
-        use_temp_path=off;
-{% if virtual_host.uploads_enabled | bool %}
-    proxy_cache_path {{ virtual_host.uploads_cache_path }}
-        levels=1:2
-        keys_zone={{ virtual_host.uploads_cache_zone }}:20m
-        max_size={{ nginx_uploads_cache_max_size }}
-        inactive=30d
-        use_temp_path=off;
-{% endif %}
-{% endfor %}
+server {
+    listen {{ tls_nginx_listen_port }} ssl;
+    listen [::]:{{ tls_nginx_listen_port }} ssl;
 
-{% for virtual_host in nginx_virtual_hosts %}
-    server {
-        listen {{ nginx_listen_port }};
-        listen [::]:{{ nginx_listen_port }};
+    server_name {{ virtual_host.server_name }};
 
-        server_name {{ virtual_host.server_name }};
+    default_type text/plain;
 
-        default_type text/plain;
+    ssl_certificate /etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/privkey.pem;
+    ssl_protocols {{ tls_nginx_protocols }};
+    ssl_ciphers {{ tls_nginx_tls12_ciphers | join(':') }};
+    ssl_conf_command Ciphersuites {{ tls_nginx_tls13_ciphers | join(':') }};
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:TLS:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
 
-        location ^~ /.well-known/acme-challenge/ {
-            root {{ tls_nginx_acme_webroot }};
-            try_files $uri =404;
-        }
-
-        location / {
-            return 301 https://$host$request_uri;
-        }
+    location /assets/ {
+        proxy_pass {{ virtual_host.app_upstream }};
+        proxy_cache {{ virtual_host.static_cache_zone }};
+        proxy_cache_valid 200 5d;
+        add_header X-Cache-Status $upstream_cache_status always;
     }
 
-    server {
-        listen {{ tls_nginx_listen_port }} ssl;
-        listen [::]:{{ tls_nginx_listen_port }} ssl;
-
-        server_name {{ virtual_host.server_name }};
-
-        default_type text/plain;
-
-        ssl_certificate /etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/{{ tls_nginx_certificate_name }}/privkey.pem;
-        ssl_protocols {{ tls_nginx_protocols }};
-        ssl_ciphers {{ tls_nginx_tls12_ciphers | join(':') }};
-        ssl_conf_command Ciphersuites {{ tls_nginx_tls13_ciphers | join(':') }};
-        ssl_prefer_server_ciphers off;
-        ssl_session_cache shared:TLS:10m;
-        ssl_session_timeout 1d;
-        ssl_session_tickets off;
-
-        location /assets/ {
-            proxy_pass {{ virtual_host.app_upstream }};
-            proxy_cache {{ virtual_host.static_cache_zone }};
-            proxy_cache_valid 200 5d;
-            add_header X-Cache-Status $upstream_cache_status always;
-        }
-
 {% if virtual_host.uploads_enabled | bool %}
-        location /uploads/ {
-            proxy_pass {{ virtual_host.uploads_upstream }};
-            proxy_cache {{ virtual_host.uploads_cache_zone }};
-            proxy_cache_valid 200 5d;
-            add_header X-Cache-Status $upstream_cache_status always;
-        }
+    location /uploads/ {
+        proxy_pass {{ virtual_host.uploads_upstream }};
+        proxy_cache {{ virtual_host.uploads_cache_zone }};
+        proxy_cache_valid 200 5d;
+        add_header X-Cache-Status $upstream_cache_status always;
+    }
 {% endif %}
 
-        location / {
-            proxy_pass {{ virtual_host.app_upstream }};
-        }
+    location / {
+        proxy_pass {{ virtual_host.app_upstream }};
     }
-{% endfor %}
 }

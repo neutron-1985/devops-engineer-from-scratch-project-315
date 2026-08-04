@@ -9,20 +9,29 @@ app_previous_container_name: "{{ app_container_name }}-previous"
 app_rollback_container_name: "{{ app_container_name }}-rollback"
 app_container_stop_timeout: 10
 
-# Keep structured stdout logs locally with bounded disk usage.
+# Bound any output captured by Docker before application file redirection.
 app_log_driver: json-file
 app_log_options:
   max-size: 10m
   max-file: "5"
+app_container_log_dir: /var/log/project-devops-deploy
+app_container_log_file: "{{ app_container_log_dir }}/application.log"
 
 # Published container ports.
 app_bind_address: 127.0.0.1
 app_management_bind_address: 127.0.0.1
+app_container_management_port: "9090"
 
 # Runtime configuration passed to the Spring Boot application.
-app_profile: dev
-app_storage_backend: local
+app_profile: prod
+app_storage_backend: s3
 app_java_opts: "-Xms256m -Xmx512m"
+app_container_entrypoint:
+  - /bin/sh
+  - -c
+  - >-
+    exec java $JAVA_OPTS -jar /app/app.jar
+    >> "$APP_LOG_FILE" 2>&1
 
 # S3-compatible object storage used by the production profile.
 app_s3_endpoint: "{{ object_storage_endpoint }}"
@@ -30,12 +39,13 @@ app_s3_bucket: "{{ object_storage_bucket }}"
 app_s3_region: "{{ object_storage_region }}"
 app_s3_access_key: "{{ object_storage_access_key }}"
 app_s3_secret_key: "{{ object_storage_secret_key }}"
-app_s3_public_url: ""
+app_s3_public_url: /uploads
 
 # Environment shared by every application profile.
 app_common_environment:
   SPRING_PROFILES_ACTIVE: "{{ app_profile }}"
   MANAGEMENT_SERVER_PORT: "{{ app_container_management_port }}"
+  APP_LOG_FILE: "{{ app_container_log_file }}"
   JAVA_OPTS: "{{ app_java_opts }}"
 
 # External service environment is composed from profile and storage backend.
@@ -65,3 +75,14 @@ app_healthcheck_path: /
 app_healthcheck_status_codes:
   - 200
   - 302
+app_container_healthcheck:
+  test:
+    - CMD-SHELL
+    - >-
+      wget --quiet --output-document=/dev/null
+      http://127.0.0.1:{{ app_container_management_port }}/actuator/health/readiness
+      || exit 1
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 30s

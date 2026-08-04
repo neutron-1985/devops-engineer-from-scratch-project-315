@@ -1,8 +1,15 @@
 ---
-- name: Create PostgreSQL data directory
+- name: Create PostgreSQL persistent directories
   ansible.builtin.file:
-    path: "{{ postgresql_data_dir }}"
+    path: "{{ item.path }}"
     state: directory
     owner: "{{ postgresql_container_uid }}"
     group: "{{ postgresql_container_gid }}"
-    mode: "0700"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ postgresql_data_dir }}"
+      mode: "0700"
+    - path: "{{ postgresql_log_dir }}"
+      mode: "0750"
+  loop_control:
+    label: "{{ item.path }}"

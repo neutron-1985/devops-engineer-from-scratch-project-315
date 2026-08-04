@@ -1,0 +1,11 @@
+[Unit]
+Description=Run project Certbot renewal twice daily
+
+[Timer]
+OnCalendar=*-*-* 03,15:00:00
+RandomizedDelaySec=3600
+Persistent=true
+Unit={{ tls_certificate_renewal_service_unit }}
+
+[Install]
+WantedBy=timers.target

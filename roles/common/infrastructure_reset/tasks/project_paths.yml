@@ -1,0 +1,22 @@
+---
+- name: Discover project data, logs, facts, and rotation configuration
+  ansible.builtin.find:
+    paths: "{{ item.path }}"
+    patterns: "{{ item.patterns }}"
+    file_type: "{{ item.file_type }}"
+    recurse: false
+  loop: "{{ infrastructure_reset_project_path_specs }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: infrastructure_reset_discovered_paths
+
+- name: Remove project data, logs, facts, and rotation configuration
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: >-
+    {{ infrastructure_reset_discovered_paths.results
+       | map(attribute='files')
+       | flatten }}
+  loop_control:
+    label: "{{ item.path }}"

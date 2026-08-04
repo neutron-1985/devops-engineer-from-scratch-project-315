@@ -1,0 +1,3 @@
+---
+host_prerequisites_packages:
+  - logrotate

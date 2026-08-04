@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: database_firewall
+  author: neutron-1985
+  description: Configures and persists firewall rules for PostgreSQL access
+  license: UNLICENSED
+  min_ansible_version: "2.18"
+  galaxy_tags:
+    - database
+    - firewall
+
+dependencies: []

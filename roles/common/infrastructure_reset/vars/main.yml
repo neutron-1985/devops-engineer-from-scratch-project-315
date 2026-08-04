@@ -1,62 +1,40 @@
 ---
-infrastructure_reset_app_log_dir: /var/log/project-devops-deploy
+infrastructure_reset_project_container_pattern: >-
+  ^project-devops-(deploy|postgresql|minio|rustfs|object-storage|nginx|certbot)(-|$)
 
-infrastructure_reset_object_storage_environment_suffixes:
-  - -dev
-  - -stage
-  - ""
-infrastructure_reset_object_storage_provider_container_bases:
-  - project-devops-minio
-  - project-devops-rustfs
-infrastructure_reset_object_storage_helper_suffixes:
-  - ""
-  - -configure-client
-  - -create-bucket
-  - -configure-public-downloads
-  - -configure-user
-  - -configure-policy
-  - -attach-policy
-infrastructure_reset_object_storage_service_container_names: >-
-  {{ infrastructure_reset_object_storage_provider_container_bases
-     | product(infrastructure_reset_object_storage_environment_suffixes)
-     | map('join')
-     | product(infrastructure_reset_object_storage_helper_suffixes)
-     | map('join')
-     | list }}
-infrastructure_reset_object_storage_migration_container_names:
-  - project-devops-object-storage-dev-migration
-  - project-devops-object-storage-dev-migration-verify
-  - project-devops-object-storage-stage-migration
-  - project-devops-object-storage-stage-migration-verify
-  - project-devops-object-storage-migration
-  - project-devops-object-storage-migration-verify
-infrastructure_reset_object_storage_container_names: >-
-  {{ infrastructure_reset_object_storage_service_container_names
-     + infrastructure_reset_object_storage_migration_container_names }}
-infrastructure_reset_legacy_object_storage_volume_names:
-  - project-devops-minio-data
-  - project-devops-rustfs-data
-  - project-devops-rustfs-client-config
+infrastructure_reset_project_path_specs:
+  - path: /var/lib
+    patterns:
+      - "project-devops-deploy*"
+      - "project-devops-postgresql*"
+      - "project-devops-minio*"
+      - "project-devops-rustfs*"
+    file_type: directory
+  - path: /var/log
+    patterns:
+      - "project-devops-deploy*"
+      - "project-devops-postgresql*"
+      - "project-devops-minio*"
+      - "project-devops-rustfs*"
+      - "project-devops-nginx*"
+      - "project-devops-certbot*"
+    file_type: directory
+  - path: "{{ ansible_local_facts_dir }}"
+    patterns:
+      - "postgresql_firewall*.fact"
+      - "object_storage_firewall*.fact"
+    file_type: file
+  - path: /etc/logrotate.d
+    patterns:
+      - "project-devops-deploy*"
+      - "project-devops-minio*"
+      - "project-devops-nginx*"
+    file_type: file
 
-infrastructure_reset_docker_packages:
-  - docker-ce
-  - docker-ce-cli
-  - docker-ce-rootless-extras
-  - containerd.io
-  - docker-buildx-plugin
-  - docker-compose-plugin
+infrastructure_reset_nginx_config_paths:
+  - "{{ nginx_bootstrap_config_path }}"
 
-infrastructure_reset_docker_paths:
-  - /etc/docker
-  - /var/lib/docker
-  - /var/lib/containerd
-  - /etc/apt/sources.list.d/docker.sources
-  - /etc/apt/sources.list.d/docker.list
-  - /etc/apt/keyrings/docker.asc
-  - /etc/apt/trusted.gpg.d/docker.asc
-
-infrastructure_reset_nginx_packages:
-  - nginx
-  - nginx-common
-  - certbot
-infrastructure_reset_nginx_cache_dir: "{{ nginx_cache_root_dir }}"
+infrastructure_reset_nginx_cache_paths:
+  - "{{ nginx_cache_root_dir }}/dev"
+  - "{{ nginx_cache_root_dir }}/stage"
+  - "{{ nginx_cache_root_dir }}/prod"
